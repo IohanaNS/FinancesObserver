@@ -2,6 +2,7 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 
 import pandas as pd
+import plotly.graph_objects as go
 import streamlit as st
 
 from services.bills_service import BillsService
@@ -69,6 +70,40 @@ def render_bills_tab(bills_service: BillsService, formatter: Callable[[float], s
             st.markdown(f"**Utilizado:** {formatter(used)} ({used_pct:.1f}%)")
 
         if cc["bills"]:
+            # --- Evolução mensal (todas as faturas disponíveis) ---
+            monthly_data: dict[str, float] = {}
+            for bill in cc["bills"]:
+                try:
+                    bill_date = pd.to_datetime(bill.get("dueDate"))
+                    if bill_date.tz is not None:
+                        bill_date = bill_date.tz_localize(None)
+                    month_key = bill_date.strftime("%Y-%m")
+                    monthly_data[month_key] = monthly_data.get(month_key, 0) + bill.get("totalAmount", 0)
+                except Exception:  # noqa: BLE001
+                    pass
+
+            if monthly_data:
+                sorted_months = sorted(monthly_data.keys())
+                labels = [datetime.strptime(m, "%Y-%m").strftime("%b/%Y") for m in sorted_months]
+                values = [monthly_data[m] for m in sorted_months]
+
+                fig = go.Figure(go.Bar(
+                    x=labels,
+                    y=values,
+                    text=[formatter(v) for v in values],
+                    textposition="outside",
+                    marker_color="#636EFA",
+                ))
+                fig.update_layout(
+                    title="Evolução Mensal da Fatura",
+                    xaxis_title="Mês",
+                    yaxis_title="Valor (R$)",
+                    height=350,
+                    margin=dict(t=40, b=40),
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            # --- Lista de faturas recentes ---
             cutoff = datetime.now() - timedelta(days=35)
             recent_bills = []
             for bill in cc["bills"]:

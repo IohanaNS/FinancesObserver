@@ -39,7 +39,7 @@ def render_analysis_tab(
         st.markdown(f"**Projeção anual:** {formatter(abs(total_subs) * 12)}")
         st.info(
             "💡 Revise se todas essas assinaturas estão sendo usadas. "
-            "Cancelar as desnecessárias pode liberar dinheiro para a viagem!"
+            "Cancelar as desnecessárias pode liberar dinheiro para a sua meta!"
         )
     else:
         st.info("Nenhuma assinatura encontrada no período.")

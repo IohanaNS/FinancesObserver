@@ -42,7 +42,7 @@ def render_sidebar(
     formatter: Callable[[float], str],
 ) -> SidebarState:
     with st.sidebar:
-        st.markdown("## ✈️ Controle Financeiro 2026")
+        st.markdown("## Controle Financeiro 📊")
 
         if "goal" not in st.session_state:
             st.session_state.goal = 15000.0
