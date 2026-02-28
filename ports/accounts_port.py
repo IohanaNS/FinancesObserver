@@ -1,0 +1,9 @@
+from typing import Protocol
+
+
+class AccountsPort(Protocol):
+    def list_accounts(self) -> list[dict[str, str]]: ...
+
+    def add_account(self, pluggy_item_id: str, nome: str) -> None: ...
+
+    def remove_account(self, pluggy_item_id: str) -> None: ...

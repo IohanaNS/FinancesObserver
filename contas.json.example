@@ -1,0 +1,12 @@
+{
+  "contas": [
+    {
+      "pluggy_item_id": "your-nubank-item-id-here",
+      "nome": "Nubank"
+    },
+    {
+      "pluggy_item_id": "your-santander-item-id-here",
+      "nome": "Santander"
+    }
+  ]
+}
