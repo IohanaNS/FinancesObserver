@@ -62,7 +62,25 @@ Aplicação disponível em `http://localhost:8501`.
 
 Sem credenciais do Pluggy o app continua funcionando para gestão manual local.
 
-### 1. Configure variáveis de ambiente
+### Qual tipo de acesso escolher?
+
+| Perfil | Solução | Custo |
+|--------|---------|-------|
+| Desenvolvedor (uso pessoal) | **MeuPluggy** | Gratuito |
+| Pessoa Física/Jurídica (uso comercial) | Assinatura Paga | Conforme plano |
+
+Para uso pessoal, utilize o **MeuPluggy** — acesso gratuito e sem limitações de trial.
+
+### Configuração via MeuPluggy (recomendado para uso pessoal)
+
+1. Crie uma conta no [MeuPluggy](https://meu.pluggy.ai) e conecte seus bancos pessoais.
+2. Acesse o [Dashboard Pluggy](https://dashboard.pluggy.ai) e crie uma **Aplicação de Desenvolvimento**.
+   - Selecione o conector **MeuPluggy** na lista de conectores.
+   - Anote o `client_id` e `client_secret` gerados.
+3. No Dashboard, use a **Autorização OAuth** para vincular sua conta MeuPluggy à aplicação de desenvolvimento.
+   - Repita o processo de autorização para cada banco conectado no MeuPluggy (uma vez por banco, não por conta).
+4. Após a autorização, os Items (conexões bancárias) aparecerão na sua aplicação de desenvolvimento. Anote os `item_id` de cada um.
+5. Configure o projeto:
 
 ```bash
 cp .env.example .env
@@ -70,36 +88,41 @@ cp .env.example .env
 
 Preencha no `.env`:
 
-- `PLUGGY_CLIENT_ID`
-- `PLUGGY_CLIENT_SECRET`
-- `PLUGGY_BASE_URL` (opcional, padrão: `https://api.pluggy.ai`)
-- `PLUGGY_BILLS_CACHE_FILE` (opcional, padrão: `faturas_cache.json`)
-- `PLUGGY_BALANCES_CACHE_FILE` (opcional, padrão: `saldos_cache.json`)
-- `PLUGGY_INVESTMENTS_CACHE_FILE` (opcional, padrão: `investimentos_cache.json`)
-- `PLUGGY_ACCOUNTS_FILE` (opcional, padrão: `contas.json`)
+- `PLUGGY_CLIENT_ID` — da sua aplicação de desenvolvimento no Dashboard
+- `PLUGGY_CLIENT_SECRET` — da sua aplicação de desenvolvimento no Dashboard
 
-### 2. Configure contas conectadas (`contas.json`)
-
-Você pode gerenciar contas diretamente pela sidebar do app (seção "Gerenciar Contas") ou editar o arquivo manualmente:
+6. Configure as contas em `contas.json` (pela sidebar do app ou manualmente):
 
 ```bash
 cp contas.json.example contas.json
 ```
 
-Estrutura esperada:
-
 ```json
 {
   "contas": [
     {
-      "pluggy_item_id": "seu-item-id",
+      "pluggy_item_id": "item-id-obtido-no-dashboard",
       "nome": "Nubank"
     }
   ]
 }
 ```
 
-Fallback legado: se `contas.json` não existir, o app tenta `PLUGGY_ITEM_ID_NUBANK` e `PLUGGY_ITEM_ID_SANTANDER`.
+Os dados são atualizados automaticamente uma vez por dia pelo MeuPluggy.
+
+Para mais detalhes, consulte o [repositório MeuPluggy](https://github.com/pluggyai/meu-pluggy).
+
+### Variáveis de ambiente opcionais
+
+- `PLUGGY_BASE_URL` (padrão: `https://api.pluggy.ai`)
+- `PLUGGY_BILLS_CACHE_FILE` (padrão: `faturas_cache.json`)
+- `PLUGGY_BALANCES_CACHE_FILE` (padrão: `saldos_cache.json`)
+- `PLUGGY_INVESTMENTS_CACHE_FILE` (padrão: `investimentos_cache.json`)
+- `PLUGGY_ACCOUNTS_FILE` (padrão: `contas.json`)
+
+### Fallback legado
+
+Se `contas.json` não existir, o app tenta `PLUGGY_ITEM_ID_NUBANK` e `PLUGGY_ITEM_ID_SANTANDER` do `.env`.
 
 ## Estrutura de dados local
 
