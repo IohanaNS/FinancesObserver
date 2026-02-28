@@ -10,7 +10,7 @@ from core.constants import (
 )
 from core.formatting import fmt_brl
 from core.models import FinanceKpis, SavingsSimulation, SidebarState
-from core.settings import PluggySettings, load_pluggy_settings
+from core.settings import MongoSettings, PluggySettings, load_mongo_settings, load_pluggy_settings
 
 __all__ = [
     "DATA_FILE",
@@ -25,6 +25,8 @@ __all__ = [
     "FinanceKpis",
     "SavingsSimulation",
     "SidebarState",
+    "MongoSettings",
     "PluggySettings",
+    "load_mongo_settings",
     "load_pluggy_settings",
 ]

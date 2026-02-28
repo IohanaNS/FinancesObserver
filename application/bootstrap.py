@@ -2,15 +2,34 @@ import streamlit as st
 
 from adapters import AccountsFileAdapter, PluggyBankingAdapter, RulesDataAdapter, TransactionsDataAdapter
 from core.constants import DATA_FILE, RULES_FILE
+from core.settings import load_mongo_settings
 from repositories import ConfigRepository, TransactionsRepository
 from services import BillsService, FinanceService
+
+
+def _build_repositories() -> tuple:
+    """Build config and transactions repositories based on MONGO_URI availability."""
+    mongo_settings = load_mongo_settings()
+    if mongo_settings.is_configured:
+        from pymongo import MongoClient
+
+        from repositories.mongo_config_repository import MongoConfigRepository
+        from repositories.mongo_transactions_repository import MongoTransactionsRepository
+
+        client = MongoClient(mongo_settings.uri)
+        db = client[mongo_settings.database]
+        config_repository = MongoConfigRepository(db)
+        transactions_repository = MongoTransactionsRepository(db, config_repository)
+    else:
+        config_repository = ConfigRepository(RULES_FILE)
+        transactions_repository = TransactionsRepository(DATA_FILE, config_repository)
+    return config_repository, transactions_repository
 
 
 def build_services() -> tuple[FinanceService, BillsService, AccountsFileAdapter]:
     banking_adapter = PluggyBankingAdapter()
     accounts_adapter = AccountsFileAdapter()
-    config_repository = ConfigRepository(RULES_FILE)
-    transactions_repository = TransactionsRepository(DATA_FILE, config_repository)
+    config_repository, transactions_repository = _build_repositories()
     rules_adapter = RulesDataAdapter(
         config_repository=config_repository,
         transactions_repository=transactions_repository,
