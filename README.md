@@ -5,7 +5,7 @@ Aplicativo Streamlit para controle financeiro pessoal, com foco em:
 - visão consolidada de gastos/entradas;
 - categorização automática por regras;
 - edição e reclassificação de transações;
-- integração opcional com Pluggy para sincronizar transações e faturas.
+- integração opcional com Pluggy para sincronizar transações, saldos, investimentos e faturas.
 
 ## Funcionalidades
 
@@ -17,6 +17,7 @@ Aplicativo Streamlit para controle financeiro pessoal, com foco em:
 - Regras de classificação por palavra-chave (com prioridade para regras mais específicas).
 - Reclassificação em massa das transações já existentes.
 - Análises por categoria, dia, fonte, assinaturas e simulador de economia.
+- Contexto de investimentos para acompanhar carteira/caixinhas e progresso da meta financeira.
 - Consulta de saldos de contas bancárias via Pluggy.
 - Consulta de faturas/limite de cartões via Pluggy, com cache local.
 - Exportação de transações para CSV e Excel.
@@ -73,6 +74,7 @@ Preencha no `.env`:
 - `PLUGGY_BASE_URL` (opcional, padrão: `https://api.pluggy.ai`)
 - `PLUGGY_BILLS_CACHE_FILE` (opcional, padrão: `faturas_cache.json`)
 - `PLUGGY_BALANCES_CACHE_FILE` (opcional, padrão: `saldos_cache.json`)
+- `PLUGGY_INVESTMENTS_CACHE_FILE` (opcional, padrão: `investimentos_cache.json`)
 - `PLUGGY_ACCOUNTS_FILE` (opcional, padrão: `contas.json`)
 
 ### 2. Configure contas conectadas (`contas.json`)
@@ -101,6 +103,7 @@ Fallback legado: se `contas.json` não existir, o app tenta `PLUGGY_ITEM_ID_NUBA
 - `dados_financeiros.csv`: base principal de transações (criada automaticamente no primeiro uso).
 - `regras_classificacao.json`: categorias e regras de classificação.
 - `saldos_cache.json`: cache local da aba de saldos (quando Pluggy estiver habilitado).
+- `investimentos_cache.json`: cache local da aba de investimentos (quando Pluggy estiver habilitado).
 - `faturas_cache.json`: cache local da aba de faturas (quando Pluggy estiver habilitado).
 
 ## Comandos de desenvolvimento
@@ -137,5 +140,5 @@ python -m py_compile app.py application/*.py core/*.py domain/*.py services/*.py
 ## Segurança
 
 - Não commitar `.env` ou credenciais.
-- Tratar `dados_financeiros.csv` e `faturas_cache.json` como dados sensíveis.
+- Tratar `dados_financeiros.csv`, `saldos_cache.json`, `investimentos_cache.json` e `faturas_cache.json` como dados sensíveis.
 - Evitar expor `contas.json` com identificadores reais de contas.

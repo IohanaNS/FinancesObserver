@@ -22,6 +22,21 @@ class FakeBankingAdapter:
     def load_balances_cache(self) -> dict | None:
         return None
 
+    def fetch_account_balances(self) -> list[dict]:
+        return []
+
+    def fetch_investments(self) -> list[dict]:
+        return []
+
+    def load_investments_cache(self) -> dict | None:
+        return None
+
+    def save_investments_goal(self, goal: float) -> None:
+        return None
+
+    def get_fontes(self) -> list[str]:
+        return []
+
 
 class BillsServiceTestCase(unittest.TestCase):
     def test_fetch_cards_delegates_to_banking_port(self):

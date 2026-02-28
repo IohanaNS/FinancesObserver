@@ -4,7 +4,13 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
-from core.constants import ACCOUNTS_FILE, BALANCES_CACHE_FILE, BILLS_CACHE_FILE, FONTES_SINTETICAS
+from core.constants import (
+    ACCOUNTS_FILE,
+    BALANCES_CACHE_FILE,
+    BILLS_CACHE_FILE,
+    FONTES_SINTETICAS,
+    INVESTMENTS_CACHE_FILE,
+)
 
 
 @dataclass(frozen=True)
@@ -15,6 +21,7 @@ class PluggySettings:
     item_map: dict[str, str]
     bills_cache_file: str
     balances_cache_file: str
+    investments_cache_file: str
 
     @property
     def has_credentials(self) -> bool:
@@ -71,4 +78,8 @@ def load_pluggy_settings() -> PluggySettings:
         item_map=item_map,
         bills_cache_file=os.getenv("PLUGGY_BILLS_CACHE_FILE", BILLS_CACHE_FILE),
         balances_cache_file=os.getenv("PLUGGY_BALANCES_CACHE_FILE", BALANCES_CACHE_FILE),
+        investments_cache_file=os.getenv(
+            "PLUGGY_INVESTMENTS_CACHE_FILE",
+            INVESTMENTS_CACHE_FILE,
+        ),
     )

@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 
 from core.models import SidebarState
+from services.finance_service import FinanceService
 
 
 def _coerce_date_range(value: date | tuple[date, date] | list[date]) -> tuple[date, date]:
@@ -21,17 +22,41 @@ def _coerce_date_range(value: date | tuple[date, date] | list[date]) -> tuple[da
     return value, value
 
 
+def _get_invested_total(finance_service: FinanceService) -> float:
+    cache = finance_service.load_cached_investments()
+    if not cache:
+        return 0.0
+    investments = cache.get("investments", [])
+    return sum(
+        item.get("saldo_atual", 0.0)
+        for item in investments
+        if item.get("saldo_atual") is not None
+    )
+
+
 def render_sidebar(
     df: pd.DataFrame,
     categories: list[str],
     fontes: list[str],
+    finance_service: FinanceService,
     formatter: Callable[[float], str],
-    months_left: int = 10,
 ) -> SidebarState:
     with st.sidebar:
         st.markdown("## ✈️ Controle Financeiro 2026")
-        travel_goal = st.number_input("Meta de economia (R$)", value=15000, step=500, key="goal")
-        saved_so_far = st.number_input("Já economizado (R$)", value=1500, step=100, key="saved")
+
+        if "goal" not in st.session_state:
+            st.session_state.goal = 15000.0
+        travel_goal = st.number_input(
+            "Meta de economia (R$)", min_value=0.0, step=500.0, key="goal"
+        )
+
+        if "goal_months" not in st.session_state:
+            st.session_state.goal_months = 12
+        months_left = st.number_input(
+            "Prazo para atingir (meses)", min_value=1, step=1, key="goal_months"
+        )
+
+        saved_so_far = _get_invested_total(finance_service)
         pct = min(saved_so_far / travel_goal, 1.0) if travel_goal > 0 else 0
 
         st.markdown(
@@ -49,8 +74,9 @@ def render_sidebar(
             unsafe_allow_html=True,
         )
 
-        remaining = travel_goal - saved_so_far
+        remaining = max(travel_goal - saved_so_far, 0.0)
         monthly_needed = remaining / months_left if months_left > 0 else 0
+        st.markdown(f"**Investido:** {formatter(saved_so_far)}")
         st.markdown(f"**Falta:** {formatter(remaining)}")
         st.markdown(f"**Por mês:** {formatter(monthly_needed)} nos próximos {months_left} meses")
 
@@ -86,7 +112,6 @@ def render_sidebar(
 
     return SidebarState(
         travel_goal=travel_goal,
-        saved_so_far=saved_so_far,
         months_left=months_left,
         date_range=date_range,
         filter_cats=filter_cats,

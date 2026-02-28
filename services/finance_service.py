@@ -84,6 +84,51 @@ class FinanceService:
     def load_cached_balances(self) -> dict | None:
         return self._banking.load_balances_cache()
 
+    def fetch_investments(self) -> list[dict]:
+        return self._banking.fetch_investments()
+
+    def load_cached_investments(self) -> dict | None:
+        return self._banking.load_investments_cache()
+
+    def save_investments_goal(self, goal: float, months: int | None = None) -> None:
+        self._banking.save_investments_goal(goal, months)
+
+    def estimate_investments_from_transactions(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        Build an estimated investments snapshot from classified transactions.
+        Useful when Pluggy does not expose dedicated investment accounts.
+        """
+        required_columns = {"Categoria", "Valor", "Fonte"}
+        if df.empty or not required_columns.issubset(df.columns):
+            return pd.DataFrame(columns=["Fonte", "Aportes", "Resgates", "Saldo Estimado"])
+
+        investment_categories = {"Investimentos", "Investimento"}
+        rescue_categories = {"Resgate Investimento"}
+        mask = df["Categoria"].isin(investment_categories | rescue_categories)
+        selected = df[mask].copy()
+        if selected.empty:
+            return pd.DataFrame(columns=["Fonte", "Aportes", "Resgates", "Saldo Estimado"])
+
+        selected["Aporte"] = selected.apply(
+            lambda row: abs(float(row["Valor"])) if row["Categoria"] in investment_categories else 0.0,
+            axis=1,
+        )
+        selected["Resgate"] = selected.apply(
+            lambda row: abs(float(row["Valor"])) if row["Categoria"] in rescue_categories else 0.0,
+            axis=1,
+        )
+
+        grouped = (
+            selected.groupby("Fonte", as_index=False)
+            .agg(
+                Aportes=("Aporte", "sum"),
+                Resgates=("Resgate", "sum"),
+            )
+            .sort_values("Fonte")
+        )
+        grouped["Saldo Estimado"] = grouped["Aportes"] - grouped["Resgates"]
+        return grouped.sort_values("Saldo Estimado", ascending=False)
+
     def get_summary_by_category(self, df: pd.DataFrame) -> pd.DataFrame:
         return self._transactions.get_summary_by_category(df)
 

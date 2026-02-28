@@ -36,3 +36,4 @@ dados_financeiros.csv
 .claude/settings.local.json
 contas.json
 saldos_cache.json
+investimentos_cache.json

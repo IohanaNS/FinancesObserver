@@ -65,6 +65,7 @@ class GetConfiguredFontesTest(unittest.TestCase):
             item_map={"id-1": "Nubank", "id-2": "Inter"},
             bills_cache_file="cache.json",
             balances_cache_file="saldos_cache.json",
+            investments_cache_file="investimentos_cache.json",
         )
         fontes = settings.get_configured_fontes()
         self.assertEqual(fontes, ["Nubank", "Inter", "Cartão Crédito Nubank", "Cartão Crédito Inter", "Outro"])
@@ -77,6 +78,7 @@ class GetConfiguredFontesTest(unittest.TestCase):
             item_map={},
             bills_cache_file="cache.json",
             balances_cache_file="saldos_cache.json",
+            investments_cache_file="investimentos_cache.json",
         )
         fontes = settings.get_configured_fontes()
         self.assertEqual(fontes, ["Cartão Crédito", "Outro"])
@@ -89,6 +91,7 @@ class GetConfiguredFontesTest(unittest.TestCase):
             item_map={"id-1": "Nubank", "id-2": "Nubank"},
             bills_cache_file="cache.json",
             balances_cache_file="saldos_cache.json",
+            investments_cache_file="investimentos_cache.json",
         )
         fontes = settings.get_configured_fontes()
         self.assertEqual(fontes, ["Nubank", "Cartão Crédito", "Outro"])

@@ -34,6 +34,26 @@ def _to_float_or_none(value) -> float | None:
         return None
 
 
+def _map_investment(investment: dict, bank: str) -> dict:
+    balance = _to_float_or_none(investment.get("balance"))
+    withdrawal = _to_float_or_none(investment.get("amountWithdrawal"))
+    original = _to_float_or_none(investment.get("amountOriginal"))
+    profit = _to_float_or_none(investment.get("amountProfit"))
+    return {
+        "banco": bank,
+        "investimento": investment.get("name", "Investimento"),
+        "investment_id": investment.get("id"),
+        "tipo": investment.get("type", "UNKNOWN"),
+        "subtipo": investment.get("subtype", ""),
+        "saldo_atual": balance,
+        "saldo_disponivel": withdrawal,
+        "aporte_original": original,
+        "lucro_prejuizo": profit,
+        "status": investment.get("status"),
+        "moeda": investment.get("currencyCode", "BRL"),
+    }
+
+
 def fetch_accounts(headers: dict, item_id: str, base_url: str) -> list:
     response = requests.get(f"{base_url}/accounts", params={"itemId": item_id}, headers=headers)
     response.raise_for_status()
@@ -71,6 +91,39 @@ def fetch_transactions(
         page += 1
 
     return all_transactions
+
+
+def fetch_investments_for_item(
+    headers: dict,
+    item_id: str,
+    base_url: str,
+) -> list[dict]:
+    """Fetch all investments for one item, handling pagination."""
+    all_investments: list[dict] = []
+    page = 1
+
+    while True:
+        response = requests.get(
+            f"{base_url}/investments",
+            params={
+                "itemId": item_id,
+                "pageSize": 500,
+                "page": page,
+            },
+            headers=headers,
+        )
+        response.raise_for_status()
+        data = response.json()
+        page_results = data.get("results", [])
+        all_investments.extend(page_results)
+        total = data.get("total")
+        if total is not None and len(all_investments) >= int(total):
+            break
+        if total is None and not page_results:
+            break
+        page += 1
+
+    return all_investments
 
 
 def _map_transaction(
@@ -125,6 +178,44 @@ def save_balances_cache(balances: list[dict], cache_file: str):
         json.dump(data, file, ensure_ascii=False, indent=2, default=str)
 
 
+def save_investments_cache(
+    investments: list[dict],
+    cache_file: str,
+    goal: float | None = None,
+    goal_months: int | None = None,
+):
+    """Save investments snapshot to local JSON cache."""
+    existing = load_investments_cache(cache_file) or {}
+    preserved_goal = goal if goal is not None else _to_float_or_none(existing.get("goal"))
+    preserved_months = goal_months if goal_months is not None else existing.get("goal_months")
+    data: dict = {
+        "updated_at": datetime.now().isoformat(),
+        "investments": investments,
+    }
+    if preserved_goal is not None:
+        data["goal"] = preserved_goal
+    if preserved_months is not None:
+        data["goal_months"] = int(preserved_months)
+    with open(cache_file, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=2, default=str)
+
+
+def save_investments_goal(
+    goal: float,
+    months: int | None = None,
+    cache_file: str = "investimentos_cache.json",
+) -> None:
+    """Persist the financial goal and optional timeline in the investments cache JSON."""
+    cached = load_investments_cache(cache_file) or {}
+    cached_investments = cached.get("investments", [])
+    save_investments_cache(
+        investments=cached_investments if isinstance(cached_investments, list) else [],
+        cache_file=cache_file,
+        goal=float(goal),
+        goal_months=months,
+    )
+
+
 def load_bills_cache(cache_file: str = "faturas_cache.json") -> dict | None:
     """Load cached credit card info. Returns None if no cache exists."""
     if not os.path.exists(cache_file):
@@ -135,6 +226,14 @@ def load_bills_cache(cache_file: str = "faturas_cache.json") -> dict | None:
 
 def load_balances_cache(cache_file: str = "saldos_cache.json") -> dict | None:
     """Load cached balances. Returns None if no cache exists."""
+    if not os.path.exists(cache_file):
+        return None
+    with open(cache_file, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def load_investments_cache(cache_file: str = "investimentos_cache.json") -> dict | None:
+    """Load cached investments. Returns None if no cache exists."""
     if not os.path.exists(cache_file):
         return None
     with open(cache_file, "r", encoding="utf-8") as file:
@@ -226,6 +325,32 @@ def fetch_account_balances(settings: PluggySettings | None = None) -> list[dict]
     balances = sorted(results, key=lambda item: (item["banco"], item["conta"]))
     save_balances_cache(balances, settings.balances_cache_file)
     return balances
+
+
+def fetch_investments(settings: PluggySettings | None = None) -> list[dict]:
+    """
+    Fetch investments from all connected items using Pluggy's Investment endpoint.
+    Returns normalized rows for the investments tab.
+    """
+    settings = settings or load_pluggy_settings()
+    if not settings.has_credentials:
+        raise ValueError("Credenciais do Pluggy não configuradas no .env")
+
+    headers = _headers(settings)
+    results: list[dict] = []
+
+    for item_id, bank in settings.item_map.items():
+        investments = fetch_investments_for_item(
+            headers=headers,
+            item_id=item_id,
+            base_url=settings.base_url,
+        )
+        for investment in investments:
+            results.append(_map_investment(investment, bank))
+
+    investments = sorted(results, key=lambda item: (item["banco"], item["investimento"]))
+    save_investments_cache(investments, settings.investments_cache_file)
+    return investments
 
 
 def sync_all(

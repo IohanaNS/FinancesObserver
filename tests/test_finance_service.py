@@ -87,6 +87,9 @@ class FakeBankingAdapter:
         self.last_date_to: str | None = None
         self.fetch_balances_called = False
         self.load_balances_cache_called = False
+        self.fetch_investments_called = False
+        self.load_investments_cache_called = False
+        self.saved_investments_goal: float | None = None
 
     def get_fontes(self) -> list[str]:
         return ["Nubank", "Cartão Crédito", "Outro"]
@@ -127,6 +130,34 @@ class FakeBankingAdapter:
                 {"banco": "Nubank", "conta": "Conta Corrente", "saldo": 100.0}
             ],
         }
+
+    def fetch_investments(self) -> list[dict]:
+        self.fetch_investments_called = True
+        return [
+            {
+                "banco": "Nubank",
+                "investimento": "Caixinha Viagem",
+                "tipo": "INVESTMENT",
+                "subtipo": "POCKET",
+                "saldo_atual": 3500.0,
+                "saldo_disponivel": 3500.0,
+                "moeda": "BRL",
+            }
+        ]
+
+    def load_investments_cache(self) -> dict | None:
+        self.load_investments_cache_called = True
+        return {
+            "updated_at": "2026-02-28T12:00:00",
+            "goal": 5000.0,
+            "investments": [
+                {"banco": "Nubank", "investimento": "Caixinha Viagem", "saldo_atual": 3000.0}
+            ],
+        }
+
+    def save_investments_goal(self, goal: float, months: int | None = None) -> None:
+        self.saved_investments_goal = goal
+        self.saved_investments_goal_months = months
 
 
 class FinanceServiceTestCase(unittest.TestCase):
@@ -255,6 +286,74 @@ class FinanceServiceTestCase(unittest.TestCase):
         assert result is not None
         self.assertIn("balances", result)
         self.assertEqual(result["balances"][0]["banco"], "Nubank")
+
+    def test_fetch_investments_delegates_to_banking_port(self):
+        repository = FakeFinanceRepository()
+        banking = FakeBankingAdapter()
+        service = FinanceService(
+            transactions=repository,
+            rules=repository,
+            banking=banking,
+        )
+
+        result = service.fetch_investments()
+
+        self.assertTrue(banking.fetch_investments_called)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["investimento"], "Caixinha Viagem")
+
+    def test_load_cached_investments_delegates_to_banking_port(self):
+        repository = FakeFinanceRepository()
+        banking = FakeBankingAdapter()
+        service = FinanceService(
+            transactions=repository,
+            rules=repository,
+            banking=banking,
+        )
+
+        result = service.load_cached_investments()
+
+        self.assertTrue(banking.load_investments_cache_called)
+        assert result is not None
+        self.assertIn("investments", result)
+        self.assertEqual(result["investments"][0]["investimento"], "Caixinha Viagem")
+
+    def test_save_investments_goal_delegates_to_banking_port(self):
+        repository = FakeFinanceRepository()
+        banking = FakeBankingAdapter()
+        service = FinanceService(
+            transactions=repository,
+            rules=repository,
+            banking=banking,
+        )
+
+        service.save_investments_goal(12000.0)
+
+        self.assertEqual(banking.saved_investments_goal, 12000.0)
+
+    def test_estimate_investments_from_transactions_groups_by_source(self):
+        repository = FakeFinanceRepository()
+        service = FinanceService(
+            transactions=repository,
+            rules=repository,
+            banking=FakeBankingAdapter(),
+        )
+        df = pd.DataFrame(
+            [
+                {"Categoria": "Investimentos", "Valor": -1000.0, "Fonte": "Nubank"},
+                {"Categoria": "Investimento", "Valor": -500.0, "Fonte": "Nubank"},
+                {"Categoria": "Resgate Investimento", "Valor": 200.0, "Fonte": "Nubank"},
+                {"Categoria": "Investimentos", "Valor": -300.0, "Fonte": "Santander"},
+                {"Categoria": "Outros", "Valor": -50.0, "Fonte": "Nubank"},
+            ]
+        )
+
+        result = service.estimate_investments_from_transactions(df).set_index("Fonte")
+
+        self.assertEqual(float(result.loc["Nubank", "Aportes"]), 1500.0)
+        self.assertEqual(float(result.loc["Nubank", "Resgates"]), 200.0)
+        self.assertEqual(float(result.loc["Nubank", "Saldo Estimado"]), 1300.0)
+        self.assertEqual(float(result.loc["Santander", "Saldo Estimado"]), 300.0)
 
 
 if __name__ == "__main__":

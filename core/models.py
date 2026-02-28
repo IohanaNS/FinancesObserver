@@ -5,7 +5,6 @@ from datetime import date
 @dataclass(frozen=True)
 class SidebarState:
     travel_goal: float
-    saved_so_far: float
     months_left: int
     date_range: tuple[date, date]
     filter_cats: list[str]

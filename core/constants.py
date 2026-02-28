@@ -2,6 +2,7 @@ DATA_FILE = "dados_financeiros.csv"
 RULES_FILE = "regras_classificacao.json"
 BILLS_CACHE_FILE = "faturas_cache.json"
 BALANCES_CACHE_FILE = "saldos_cache.json"
+INVESTMENTS_CACHE_FILE = "investimentos_cache.json"
 
 ACCOUNTS_FILE = "contas.json"
 FONTES_SINTETICAS = ["Outro"]
