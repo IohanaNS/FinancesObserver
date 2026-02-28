@@ -1,91 +1,138 @@
-# 💰 Controle Financeiro
+# FinancesObserver
 
-App Streamlit para organizar suas finanças.
+Aplicativo Streamlit para controle financeiro pessoal, com foco em:
 
-## Como rodar
+- visão consolidada de gastos/entradas;
+- categorização automática por regras;
+- edição e reclassificação de transações;
+- integração opcional com Pluggy para sincronizar transações e faturas.
 
-```bash
-# 1. Instale as dependências
-pip install -r requirements.txt
+## Funcionalidades
 
-# 2. Rode o app
-streamlit run app.py
-```
-
-O app abre em `http://localhost:8501`.
+- Dashboard com KPIs de renda, gastos reais, percentual da renda consumido e total investido.
+- Filtros por período, categoria e fonte.
+- Sincronização de transações via Pluggy com deduplicação.
+- Gestão manual de transações (adicionar e remover).
+- Edição de categoria direto na tabela de transações.
+- Regras de classificação por palavra-chave (com prioridade para regras mais específicas).
+- Reclassificação em massa das transações já existentes.
+- Análises por categoria, dia, fonte, assinaturas e simulador de economia.
+- Consulta de faturas/limite de cartões via Pluggy, com cache local.
+- Exportação de transações para CSV e Excel.
 
 ## Arquitetura
 
-Separação de responsabilidades:
+O projeto segue arquitetura em camadas:
 
-- `app.py`: entrypoint da aplicação
-- `application/`: bootstrap de dependências e estado inicial da sessão
-- `core/`: utilitários, modelos, constantes e settings (`fmt_brl`, dataclasses, `PluggySettings`)
-- `ports/`: contratos de dependência (DIP), segregados por responsabilidade (`RulesDataPort`, `TransactionsDataPort`, `BankingPort`)
-- `adapters/`: implementações concretas dos contratos (segregadas por regras/transações/integração bancária)
-- `repositories/`: acesso a dados segregado (`ConfigRepository` e `TransactionsRepository`)
-- `domain/`: regras de domínio puras (classificação, análise financeira e deduplicação)
-- `services/`: casos de uso com dependência em portas
-- `presentation/`: apresentação Streamlit (estilos, sidebar, componentes e tela principal)
-- `presentation/tabs/`: renderização por aba (dashboard, transações, regras, análise, faturas)
-- `data.py`: fachada de compatibilidade delegando para repositórios
-- `pluggy_integration.py`: integração HTTP com API Pluggy
+- `presentation/`: interface Streamlit (componentes, sidebar, tabs).
+- `services/`: casos de uso e orquestração da aplicação.
+- `ports/`: contratos de entrada/saída para isolamento de dependências.
+- `adapters/`: implementações concretas dos contratos.
+- `repositories/`: persistência em arquivos (`csv`/`json`).
+- `domain/`: regras puras de negócio (classificação, analytics, deduplicação).
+- `application/`: composição de dependências (bootstrap).
+- `core/`: constantes, modelos e utilitários.
+- `data.py`: camada legado de compatibilidade (não expandir).
 
-```text
-files/
-├── app.py
-├── application/
-│   └── bootstrap.py
-├── adapters/
-│   ├── transactions_data_adapter.py
-│   ├── rules_data_adapter.py
-│   └── pluggy_banking_adapter.py
-├── repositories/
-│   ├── config_repository.py
-│   └── transactions_repository.py
-├── domain/
-│   ├── analytics.py
-│   ├── classification.py
-│   └── deduplication.py
-├── core/
-│   ├── constants.py
-│   ├── formatting.py
-│   ├── models.py
-│   └── settings.py
-├── ports/
-│   ├── rules_port.py
-│   ├── transactions_port.py
-│   └── banking_port.py
-├── services/
-│   ├── finance_service.py
-│   └── bills_service.py
-├── presentation/
-│   ├── styles.py
-│   ├── sidebar.py
-│   ├── components.py
-│   ├── main_screen.py
-│   └── tabs/
-│       ├── dashboard_tab.py
-│       ├── transactions_tab.py
-│       ├── add_transaction_tab.py
-│       ├── rules_tab.py
-│       ├── analysis_tab.py
-│       └── bills_tab.py
-├── data.py  (fachada de compatibilidade para os repositórios)
-├── pluggy_integration.py
-├── tests/
-│   ├── test_finance_service.py
-│   ├── test_bills_service.py
-│   ├── test_data_logic.py
-│   └── test_domain_analytics.py
-├── dados_financeiros.csv
-└── regras_classificacao.json
+## Pré-requisitos
+
+- Python 3.10+
+- `pip`
+
+## Instalação e execução
+
+```bash
+# 1) (Opcional, recomendado) criar e ativar ambiente virtual
+python -m venv .venv
+source .venv/bin/activate
+
+# 2) Instalar dependências
+pip install -r requirements.txt
+
+# 3) Subir aplicação
+streamlit run app.py
 ```
 
-## Princípios aplicados
+Aplicação disponível em `http://localhost:8501`.
 
-- **Single Responsibility**: cada módulo/aba tem uma responsabilidade principal
-- **Separation of Concerns**: UI desacoplada da lógica de negócio
-- **Dependency Inversion**: `services` dependem de contratos (`ports`) e não de módulos concretos
-- **Composition Root**: `application/bootstrap.py` injeta adapters concretos nos serviços
-- **Manutenibilidade**: menor acoplamento e melhor legibilidade para evoluções
+## Configuração Pluggy (opcional)
+
+Sem credenciais do Pluggy o app continua funcionando para gestão manual local.
+
+### 1. Configure variáveis de ambiente
+
+```bash
+cp .env.example .env
+```
+
+Preencha no `.env`:
+
+- `PLUGGY_CLIENT_ID`
+- `PLUGGY_CLIENT_SECRET`
+- `PLUGGY_BASE_URL` (opcional, padrão: `https://api.pluggy.ai`)
+- `PLUGGY_BILLS_CACHE_FILE` (opcional, padrão: `faturas_cache.json`)
+- `PLUGGY_ACCOUNTS_FILE` (opcional, padrão: `contas.json`)
+
+### 2. Configure contas conectadas (`contas.json`)
+
+```bash
+cp contas.json.example contas.json
+```
+
+Estrutura esperada:
+
+```json
+{
+  "contas": [
+    {
+      "pluggy_item_id": "seu-item-id",
+      "nome": "Nubank"
+    }
+  ]
+}
+```
+
+Fallback legado: se `contas.json` não existir, o app tenta `PLUGGY_ITEM_ID_NUBANK` e `PLUGGY_ITEM_ID_SANTANDER`.
+
+## Estrutura de dados local
+
+- `dados_financeiros.csv`: base principal de transações (criada automaticamente no primeiro uso).
+- `regras_classificacao.json`: categorias e regras de classificação.
+- `faturas_cache.json`: cache local da aba de faturas (quando Pluggy estiver habilitado).
+
+## Comandos de desenvolvimento
+
+```bash
+# Executar todos os testes
+python -m unittest discover -s tests -p "test_*.py" -v
+```
+
+```bash
+# Checagem rápida de sintaxe
+python -m py_compile app.py application/*.py core/*.py domain/*.py services/*.py adapters/*.py repositories/*.py ports/*.py presentation/*.py presentation/tabs/*.py tests/*.py data.py pluggy_integration.py
+```
+
+## Organização do código
+
+```text
+.
+├── app.py
+├── application/
+├── presentation/
+│   └── tabs/
+├── services/
+├── ports/
+├── adapters/
+├── repositories/
+├── domain/
+├── core/
+├── tests/
+├── data.py
+└── pluggy_integration.py
+```
+
+## Segurança
+
+- Não commitar `.env` ou credenciais.
+- Tratar `dados_financeiros.csv` e `faturas_cache.json` como dados sensíveis.
+- Evitar expor `contas.json` com identificadores reais de contas.
