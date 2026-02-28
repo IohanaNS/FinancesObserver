@@ -4,6 +4,23 @@ from dataclasses import dataclass
 
 from dotenv import load_dotenv
 
+
+def _load_streamlit_secrets() -> None:
+    """Bridge st.secrets into os.environ for Streamlit Cloud compatibility.
+
+    Streamlit Cloud exposes secrets via st.secrets, but not always as
+    environment variables.  This copies them into os.environ so the rest
+    of the code can rely on os.getenv() uniformly.
+    """
+    try:
+        import streamlit as st
+
+        for key, value in st.secrets.items():
+            if isinstance(value, str) and key not in os.environ:
+                os.environ[key] = value
+    except Exception:
+        pass
+
 from core.constants import (
     ACCOUNTS_FILE,
     BALANCES_CACHE_FILE,
@@ -75,6 +92,7 @@ class MongoSettings:
 
 def load_mongo_settings() -> MongoSettings:
     load_dotenv()
+    _load_streamlit_secrets()
     return MongoSettings(
         uri=os.getenv("MONGO_URI", ""),
         database=os.getenv("MONGO_DATABASE", "finances_observer"),
@@ -83,6 +101,7 @@ def load_mongo_settings() -> MongoSettings:
 
 def load_pluggy_settings() -> PluggySettings:
     load_dotenv()
+    _load_streamlit_secrets()
 
     accounts_file = os.getenv("PLUGGY_ACCOUNTS_FILE", ACCOUNTS_FILE)
     item_map = _load_item_map_from_json(accounts_file)
