@@ -50,21 +50,43 @@ def render_dashboard_tab(
     with col_right:
         section_header("Distribuição")
         if not cat_summary.empty:
+            total_gasto = cat_summary["Total"].sum()
+            pie_labels = cat_summary["Categoria"].map(
+                lambda c: f"{category_icons.get(c, '📌')} {c}"
+            )
+            _PALETTE = [
+                "#6366f1", "#f59e0b", "#10b981", "#ef4444", "#3b82f6",
+                "#8b5cf6", "#ec4899", "#14b8a6", "#f97316", "#84cc16",
+                "#06b6d4", "#a855f7",
+            ]
             fig_pie = px.pie(
                 cat_summary,
                 values="Total",
-                names="Categoria",
-                color_discrete_sequence=px.colors.qualitative.Set3,
-                hole=0.45,
+                names=pie_labels,
+                color_discrete_sequence=_PALETTE,
+                hole=0.52,
+            )
+            fig_pie.update_traces(
+                textposition="inside",
+                textinfo="percent",
+                texttemplate="<b>%{percent:.0%}</b>",
+                insidetextfont=dict(size=14, family="DM Sans", color="white"),
+                hovertemplate="<b>%{label}</b><br>%{customdata}<br>%{percent:.1%}<extra></extra>",
+                customdata=cat_summary["Total"].apply(formatter),
             )
             fig_pie.update_layout(
                 margin=dict(l=0, r=0, t=10, b=10),
                 height=380,
                 font=dict(family="DM Sans", size=11),
                 paper_bgcolor="rgba(0,0,0,0)",
-                legend=dict(font=dict(size=10)),
+                legend=dict(font=dict(size=10), orientation="v"),
+                annotations=[dict(
+                    text=f"<b>{formatter(total_gasto)}</b><br>total",
+                    x=0.5, y=0.5,
+                    font=dict(size=13, family="DM Sans"),
+                    showarrow=False,
+                )],
             )
-            fig_pie.update_traces(textposition="inside", textinfo="percent")
             st.plotly_chart(fig_pie, use_container_width=True)
 
     section_header("Gastos Diários")
