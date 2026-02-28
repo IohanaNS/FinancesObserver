@@ -1,13 +1,14 @@
 import streamlit as st
 
-from adapters import PluggyBankingAdapter, RulesDataAdapter, TransactionsDataAdapter
+from adapters import AccountsFileAdapter, PluggyBankingAdapter, RulesDataAdapter, TransactionsDataAdapter
 from core.constants import DATA_FILE, RULES_FILE
 from repositories import ConfigRepository, TransactionsRepository
 from services import BillsService, FinanceService
 
 
-def build_services() -> tuple[FinanceService, BillsService]:
+def build_services() -> tuple[FinanceService, BillsService, AccountsFileAdapter]:
     banking_adapter = PluggyBankingAdapter()
+    accounts_adapter = AccountsFileAdapter()
     config_repository = ConfigRepository(RULES_FILE)
     transactions_repository = TransactionsRepository(DATA_FILE, config_repository)
     rules_adapter = RulesDataAdapter(
@@ -25,6 +26,7 @@ def build_services() -> tuple[FinanceService, BillsService]:
             banking=banking_adapter,
         ),
         BillsService(banking=banking_adapter),
+        accounts_adapter,
     )
 
 

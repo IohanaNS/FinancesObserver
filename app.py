@@ -9,13 +9,14 @@ def main() -> None:
     render_theme_switch()
     inject_styles()
 
-    finance_service, bills_service = build_services()
+    finance_service, bills_service, accounts_adapter = build_services()
     df = initialize_session_dataframe(finance_service)
     render_main_screen(
         finance_service=finance_service,
         bills_service=bills_service,
         df=df,
         formatter=fmt_brl,
+        accounts_adapter=accounts_adapter,
     )
 
 

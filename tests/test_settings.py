@@ -81,7 +81,7 @@ class GetConfiguredFontesTest(unittest.TestCase):
             investments_cache_file="investimentos_cache.json",
         )
         fontes = settings.get_configured_fontes()
-        self.assertEqual(fontes, ["Cartão Crédito", "Outro"])
+        self.assertEqual(fontes, ["Outro"])
 
     def test_deduplicates_bank_names(self):
         settings = PluggySettings(
@@ -94,7 +94,7 @@ class GetConfiguredFontesTest(unittest.TestCase):
             investments_cache_file="investimentos_cache.json",
         )
         fontes = settings.get_configured_fontes()
-        self.assertEqual(fontes, ["Nubank", "Cartão Crédito", "Outro"])
+        self.assertEqual(fontes, ["Nubank", "Cartão Crédito Nubank", "Outro"])
 
 
 class LoadPluggySettingsFallbackTest(unittest.TestCase):

@@ -5,20 +5,17 @@ import pandas as pd
 import streamlit as st
 
 from core.models import SidebarState
+from ports.accounts_port import AccountsPort
 from services.finance_service import FinanceService
 
 
-def _coerce_date_range(value: date | tuple[date, date] | list[date]) -> tuple[date, date]:
-    if isinstance(value, tuple):
-        if len(value) == 2:
-            return value[0], value[1]
-        if len(value) == 1:
-            return value[0], value[0]
-    if isinstance(value, list):
+def _coerce_date_range(value: date | tuple[date, ...] | list[date]) -> tuple[date, date]:
+    if isinstance(value, (tuple, list)):
         if len(value) >= 2:
             return value[0], value[1]
         if len(value) == 1:
             return value[0], value[0]
+        return date.today(), date.today()
     return value, value
 
 
@@ -40,6 +37,7 @@ def render_sidebar(
     fontes: list[str],
     finance_service: FinanceService,
     formatter: Callable[[float], str],
+    accounts_adapter: AccountsPort | None = None,
 ) -> SidebarState:
     with st.sidebar:
         st.markdown("## Controle Financeiro 📊")
@@ -109,6 +107,39 @@ def render_sidebar(
             sync_to = st.date_input("Até", value=date.today(), key="sync_to")
 
         sync_requested = st.button("Sincronizar", use_container_width=True)
+
+        if accounts_adapter is not None:
+            st.divider()
+            with st.expander("🏦 Gerenciar Contas"):
+                contas = accounts_adapter.list_accounts()
+                if contas:
+                    for conta in contas:
+                        col_name, col_btn = st.columns([3, 1])
+                        with col_name:
+                            st.text(conta.get("nome", ""))
+                        with col_btn:
+                            if st.button(
+                                "✕",
+                                key=f"rm_{conta.get('pluggy_item_id')}",
+                                help="Remover conta",
+                            ):
+                                accounts_adapter.remove_account(conta["pluggy_item_id"])
+                                st.rerun()
+                else:
+                    st.caption("Nenhuma conta cadastrada.")
+
+                st.markdown("---")
+                new_id = st.text_input("Pluggy Item ID", key="new_account_id")
+                new_nome = st.text_input("Nome da conta", key="new_account_nome")
+                if st.button("Adicionar", key="add_account", use_container_width=True):
+                    if new_id and new_nome:
+                        try:
+                            accounts_adapter.add_account(new_id, new_nome)
+                            st.rerun()
+                        except ValueError as exc:
+                            st.error(str(exc))
+                    else:
+                        st.warning("Preencha ambos os campos.")
 
     return SidebarState(
         travel_goal=travel_goal,

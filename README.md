@@ -20,6 +20,7 @@ Aplicativo Streamlit para controle financeiro pessoal, com foco em:
 - Contexto de investimentos para acompanhar carteira/caixinhas e progresso da meta financeira.
 - Consulta de saldos de contas bancárias via Pluggy.
 - Consulta de faturas/limite de cartões via Pluggy, com cache local.
+- Gerenciamento de contas bancárias pela sidebar (adicionar/remover sem editar `contas.json` manualmente).
 - Exportação de transações para CSV e Excel.
 
 ## Arquitetura
@@ -78,6 +79,8 @@ Preencha no `.env`:
 - `PLUGGY_ACCOUNTS_FILE` (opcional, padrão: `contas.json`)
 
 ### 2. Configure contas conectadas (`contas.json`)
+
+Você pode gerenciar contas diretamente pela sidebar do app (seção "Gerenciar Contas") ou editar o arquivo manualmente:
 
 ```bash
 cp contas.json.example contas.json

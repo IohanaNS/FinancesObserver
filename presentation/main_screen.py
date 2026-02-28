@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 
 from core.models import SidebarState
+from ports.accounts_port import AccountsPort
 from services import BillsService, FinanceService
 
 from presentation import render_app_header, render_kpi_cards, render_sidebar
@@ -169,6 +170,7 @@ def render_main_screen(
     bills_service: BillsService,
     df: pd.DataFrame,
     formatter: Callable[[float], str],
+    accounts_adapter: AccountsPort | None = None,
 ) -> None:
     _bootstrap_financial_goal(finance_service)
 
@@ -178,6 +180,7 @@ def render_main_screen(
         fontes=finance_service.get_fontes(),
         finance_service=finance_service,
         formatter=formatter,
+        accounts_adapter=accounts_adapter,
     )
     _sync_shared_goal(finance_service, sidebar_state)
 

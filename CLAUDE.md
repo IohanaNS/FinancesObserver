@@ -19,7 +19,7 @@ Hexagonal (Ports & Adapters) architecture. The data flow is:
 app.py → application/bootstrap.py (wires dependencies)
        → presentation/main_screen.py → presentation/tabs/ (6 tabs)
        → services/ (FinanceService, BillsService) — use-case orchestration
-       → ports/ (Protocol interfaces: RulesDataPort, TransactionsDataPort, BankingPort)
+       → ports/ (Protocol interfaces: RulesDataPort, TransactionsDataPort, BankingPort, AccountsPort)
        → adapters/ (concrete implementations bridging ports to repositories/API)
        → repositories/ (ConfigRepository for JSON rules, TransactionsRepository for CSV data)
        → domain/ (pure logic: classification, deduplication, analytics — no I/O)
@@ -48,7 +48,7 @@ app.py → application/bootstrap.py (wires dependencies)
 - `dados_financeiros.csv`: Transaction ledger (columns: Data, Descrição, Valor, Tipo, Categoria, Fonte, pluggy_id).
 - `regras_classificacao.json`: Categories (with icons and `gasto_real` flag) + keyword→category rules.
 - `faturas_cache.json`: Cached credit card bills from Pluggy API.
-- `contas.json`: Bank account configuration (array of `{pluggy_item_id, nome}`). See `contas.json.example`. Falls back to legacy `.env` vars if absent.
+- `contas.json`: Bank account configuration (array of `{pluggy_item_id, nome}`). Manageable via sidebar UI or manual edit. See `contas.json.example`. Falls back to legacy `.env` vars if absent.
 - `.env`: Pluggy API credentials (`PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`). Legacy bank item IDs (`PLUGGY_ITEM_ID_NUBANK`, `PLUGGY_ITEM_ID_SANTANDER`) still supported as fallback.
 
 ## Testing
