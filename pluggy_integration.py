@@ -188,7 +188,7 @@ def sync_all(
         accounts = fetch_accounts(headers, item_id, settings.base_url)
         for account in accounts:
             is_credit_card = account["type"] == "CREDIT"
-            fonte = "Cartão Crédito" if is_credit_card else bank
+            fonte = f"Cartão Crédito {bank}" if is_credit_card else bank
 
             transactions = fetch_transactions(
                 headers=headers,

@@ -14,9 +14,6 @@ class FakeFinanceRepository:
     def load_dataframe(self) -> pd.DataFrame:
         return pd.DataFrame()
 
-    def get_fontes(self) -> list[str]:
-        return ["Nubank"]
-
     def get_categorias_list(self) -> list[str]:
         return ["Transporte", "Outros", "Salário", "Investimentos"]
 
@@ -88,6 +85,9 @@ class FakeBankingAdapter:
     def __init__(self):
         self.last_date_from: str | None = None
         self.last_date_to: str | None = None
+
+    def get_fontes(self) -> list[str]:
+        return ["Nubank", "Cartão Crédito", "Outro"]
 
     def sync_all(self, date_from: str, date_to: str, categorize):
         self.last_date_from = date_from

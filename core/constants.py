@@ -2,7 +2,8 @@ DATA_FILE = "dados_financeiros.csv"
 RULES_FILE = "regras_classificacao.json"
 BILLS_CACHE_FILE = "faturas_cache.json"
 
-FONTES = ["Nubank", "Santander", "Cartão Crédito", "Outro"]
+ACCOUNTS_FILE = "contas.json"
+FONTES_SINTETICAS = ["Outro"]
 TRANSACTION_COLUMNS = ["Data", "Descrição", "Valor", "Tipo", "Categoria", "Fonte", "pluggy_id"]
 
 # Categories that represent internal movements (not real expenses)

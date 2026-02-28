@@ -5,7 +5,6 @@ from core.constants import (
     CATEGORY_SUBSCRIPTIONS,
     CROSS_BANK_CATEGORIES,
     DATA_FILE,
-    FONTES,
     RULES_FILE,
     TRANSACTION_COLUMNS,
 )
@@ -17,7 +16,6 @@ __all__ = [
     "DATA_FILE",
     "RULES_FILE",
     "BILLS_CACHE_FILE",
-    "FONTES",
     "TRANSACTION_COLUMNS",
     "CROSS_BANK_CATEGORIES",
     "CATEGORY_SALARY",

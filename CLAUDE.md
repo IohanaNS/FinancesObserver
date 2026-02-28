@@ -25,7 +25,7 @@ app.py → application/bootstrap.py (wires dependencies)
        → domain/ (pure logic: classification, deduplication, analytics — no I/O)
 ```
 
-`pluggy_integration.py` is the HTTP client for the Pluggy banking API (Nubank + Santander). It handles auth, transaction fetching with pagination, credit card bills, and local JSON caching.
+`pluggy_integration.py` is the HTTP client for the Pluggy banking API. It handles auth, transaction fetching with pagination, credit card bills, and local JSON caching. Supports any number of bank accounts configured via `contas.json`.
 
 `data.py` is a legacy compatibility facade delegating to repositories — do not expand it.
 
@@ -48,7 +48,8 @@ app.py → application/bootstrap.py (wires dependencies)
 - `dados_financeiros.csv`: Transaction ledger (columns: Data, Descrição, Valor, Tipo, Categoria, Fonte, pluggy_id).
 - `regras_classificacao.json`: Categories (with icons and `gasto_real` flag) + keyword→category rules.
 - `faturas_cache.json`: Cached credit card bills from Pluggy API.
-- `.env`: Pluggy API credentials (`PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`, `PLUGGY_ITEM_ID_NUBANK`, `PLUGGY_ITEM_ID_SANTANDER`).
+- `contas.json`: Bank account configuration (array of `{pluggy_item_id, nome}`). See `contas.json.example`. Falls back to legacy `.env` vars if absent.
+- `.env`: Pluggy API credentials (`PLUGGY_CLIENT_ID`, `PLUGGY_CLIENT_SECRET`). Legacy bank item IDs (`PLUGGY_ITEM_ID_NUBANK`, `PLUGGY_ITEM_ID_SANTANDER`) still supported as fallback.
 
 ## Testing
 

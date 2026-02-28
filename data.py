@@ -3,7 +3,6 @@ import pandas as pd
 from core.constants import (
     CROSS_BANK_CATEGORIES,
     DATA_FILE,
-    FONTES,
     RULES_FILE,
     TRANSACTION_COLUMNS,
 )

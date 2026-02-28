@@ -4,7 +4,7 @@ from typing import Sequence
 
 import pandas as pd
 
-from core.constants import CATEGORY_INVESTMENTS, CATEGORY_SALARY, CATEGORY_SUBSCRIPTIONS, FONTES
+from core.constants import CATEGORY_INVESTMENTS, CATEGORY_SALARY, CATEGORY_SUBSCRIPTIONS
 from core.models import FinanceKpis, SavingsSimulation
 from ports import BankingPort, RulesDataPort, TransactionsDataPort
 
@@ -24,7 +24,7 @@ class FinanceService:
         return self._transactions.load_dataframe()
 
     def get_fontes(self) -> list[str]:
-        return list(FONTES)
+        return self._banking.get_fontes()
 
     def get_categorias_list(self) -> list[str]:
         return self._rules.get_categorias_list()

@@ -26,3 +26,6 @@ class PluggyBankingAdapter:
 
     def load_bills_cache(self) -> dict | None:
         return load_bills_cache(cache_file=self._settings.bills_cache_file)
+
+    def get_fontes(self) -> list[str]:
+        return self._settings.get_configured_fontes()
