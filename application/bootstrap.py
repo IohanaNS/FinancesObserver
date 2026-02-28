@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 
 import streamlit as st
@@ -16,6 +17,8 @@ from core.settings import load_mongo_settings
 from ports.accounts_port import AccountsPort
 from repositories import ConfigRepository, TransactionsRepository
 from services import BillsService, FinanceService
+
+logger = logging.getLogger(__name__)
 
 
 def _seed_mongo_config_from_json(mongo_config_repo, json_path: str) -> None:
@@ -68,6 +71,33 @@ def _seed_mongo_caches_from_json(cache_repository) -> None:
         )
 
 
+def _seed_mongo_transactions_from_csv(mongo_txn_repo, csv_path: str) -> None:
+    """Seed MongoDB transactions from local CSV file if MongoDB collection is empty."""
+    if not os.path.exists(csv_path):
+        return
+
+    import pandas as pd
+
+    # Only seed if MongoDB has no transactions
+    if mongo_txn_repo._col.count_documents({}, limit=1) > 0:
+        return
+
+    from core.constants import TRANSACTION_COLUMNS
+
+    try:
+        df = pd.read_csv(csv_path, encoding="utf-8")
+        if df.empty:
+            return
+        for col in TRANSACTION_COLUMNS:
+            if col not in df.columns:
+                df[col] = None
+        df["Data"] = pd.to_datetime(df["Data"])
+        mongo_txn_repo.save_data(df)
+        logger.info("Seeded %d transactions from %s into MongoDB", len(df), csv_path)
+    except Exception as exc:
+        logger.warning("Could not seed transactions from CSV: %s", exc)
+
+
 def _seed_mongo_accounts(accounts_adapter, json_path: str) -> None:
     """Seed MongoDB accounts from local JSON file if MongoDB has no accounts."""
     if accounts_adapter.list_accounts():
@@ -86,23 +116,58 @@ def _seed_mongo_accounts(accounts_adapter, json_path: str) -> None:
             accounts_adapter.add_account(item_id, nome)
 
 
+def _create_mongo_client(uri: str):
+    """Create a MongoClient with Atlas-compatible settings.
+
+    Handles both local (mongodb://) and Atlas (mongodb+srv://) URIs.
+    Adds sensible timeouts and retry configuration for cloud connectivity.
+    """
+    from pymongo import MongoClient
+
+    kwargs: dict = {
+        "serverSelectionTimeoutMS": 10_000,
+        "connectTimeoutMS": 10_000,
+        "socketTimeoutMS": 30_000,
+        "retryWrites": True,
+        "retryReads": True,
+    }
+
+    if uri.startswith("mongodb+srv://"):
+        kwargs["tls"] = True
+
+    return MongoClient(uri, **kwargs)
+
+
+def _check_mongo_connection(client, database_name: str) -> None:
+    """Validate MongoDB connectivity by issuing a ping command."""
+    try:
+        client.admin.command("ping")
+        logger.info("MongoDB connection OK (database: %s)", database_name)
+    except Exception as exc:
+        logger.error("Failed to connect to MongoDB: %s", exc)
+        raise ConnectionError(
+            f"Não foi possível conectar ao MongoDB. Verifique a MONGO_URI "
+            f"e se o IP está na Access List do Atlas. Erro: {exc}"
+        ) from exc
+
+
 def build_services() -> tuple[FinanceService, BillsService, AccountsPort]:
     mongo_settings = load_mongo_settings()
 
     if mongo_settings.is_configured:
-        from pymongo import MongoClient
-
         from adapters.accounts_mongo_adapter import AccountsMongoAdapter
         from repositories.mongo_cache_repository import MongoCacheRepository
         from repositories.mongo_config_repository import MongoConfigRepository
         from repositories.mongo_transactions_repository import MongoTransactionsRepository
 
-        client = MongoClient(mongo_settings.uri)
+        client = _create_mongo_client(mongo_settings.uri)
+        _check_mongo_connection(client, mongo_settings.database)
         db = client[mongo_settings.database]
 
         config_repository = MongoConfigRepository(db)
         _seed_mongo_config_from_json(config_repository, RULES_FILE)
         transactions_repository = MongoTransactionsRepository(db, config_repository)
+        _seed_mongo_transactions_from_csv(transactions_repository, DATA_FILE)
 
         cache_repository = MongoCacheRepository(db)
         _seed_mongo_caches_from_json(cache_repository)
