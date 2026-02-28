@@ -19,6 +19,9 @@ class FakeBankingAdapter:
         self.cache_called = True
         return {"cards": []}
 
+    def load_balances_cache(self) -> dict | None:
+        return None
+
 
 class BillsServiceTestCase(unittest.TestCase):
     def test_fetch_cards_delegates_to_banking_port(self):

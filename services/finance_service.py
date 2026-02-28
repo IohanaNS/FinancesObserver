@@ -81,6 +81,9 @@ class FinanceService:
     def fetch_account_balances(self) -> list[dict]:
         return self._banking.fetch_account_balances()
 
+    def load_cached_balances(self) -> dict | None:
+        return self._banking.load_balances_cache()
+
     def get_summary_by_category(self, df: pd.DataFrame) -> pd.DataFrame:
         return self._transactions.get_summary_by_category(df)
 

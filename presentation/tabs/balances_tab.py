@@ -28,6 +28,12 @@ def render_balances_tab(
     section_header("🏦 Saldos das Contas")
     st.caption("Consulta os saldos das contas bancárias conectadas no Pluggy.")
 
+    if "bank_balances" not in st.session_state:
+        cache = finance_service.load_cached_balances()
+        if cache:
+            st.session_state.bank_balances = cache.get("balances", [])
+            st.session_state.bank_balances_updated = cache.get("updated_at")
+
     if st.button("🔄 Atualizar Saldos", use_container_width=True, key="fetch_balances"):
         try:
             with st.spinner("Consultando saldos no Pluggy..."):

@@ -72,6 +72,7 @@ Preencha no `.env`:
 - `PLUGGY_CLIENT_SECRET`
 - `PLUGGY_BASE_URL` (opcional, padrão: `https://api.pluggy.ai`)
 - `PLUGGY_BILLS_CACHE_FILE` (opcional, padrão: `faturas_cache.json`)
+- `PLUGGY_BALANCES_CACHE_FILE` (opcional, padrão: `saldos_cache.json`)
 - `PLUGGY_ACCOUNTS_FILE` (opcional, padrão: `contas.json`)
 
 ### 2. Configure contas conectadas (`contas.json`)
@@ -99,6 +100,7 @@ Fallback legado: se `contas.json` não existir, o app tenta `PLUGGY_ITEM_ID_NUBA
 
 - `dados_financeiros.csv`: base principal de transações (criada automaticamente no primeiro uso).
 - `regras_classificacao.json`: categorias e regras de classificação.
+- `saldos_cache.json`: cache local da aba de saldos (quando Pluggy estiver habilitado).
 - `faturas_cache.json`: cache local da aba de faturas (quando Pluggy estiver habilitado).
 
 ## Comandos de desenvolvimento

@@ -35,3 +35,4 @@ faturas_cache.json
 dados_financeiros.csv
 .claude/settings.local.json
 contas.json
+saldos_cache.json

@@ -115,8 +115,26 @@ def save_bills_cache(cc_info: list[dict], cache_file: str):
         json.dump(data, file, ensure_ascii=False, indent=2, default=str)
 
 
+def save_balances_cache(balances: list[dict], cache_file: str):
+    """Save bank balances to local JSON cache."""
+    data = {
+        "updated_at": datetime.now().isoformat(),
+        "balances": balances,
+    }
+    with open(cache_file, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, indent=2, default=str)
+
+
 def load_bills_cache(cache_file: str = "faturas_cache.json") -> dict | None:
     """Load cached credit card info. Returns None if no cache exists."""
+    if not os.path.exists(cache_file):
+        return None
+    with open(cache_file, "r", encoding="utf-8") as file:
+        return json.load(file)
+
+
+def load_balances_cache(cache_file: str = "saldos_cache.json") -> dict | None:
+    """Load cached balances. Returns None if no cache exists."""
     if not os.path.exists(cache_file):
         return None
     with open(cache_file, "r", encoding="utf-8") as file:
@@ -205,7 +223,9 @@ def fetch_account_balances(settings: PluggySettings | None = None) -> list[dict]
                 }
             )
 
-    return sorted(results, key=lambda item: (item["banco"], item["conta"]))
+    balances = sorted(results, key=lambda item: (item["banco"], item["conta"]))
+    save_balances_cache(balances, settings.balances_cache_file)
+    return balances
 
 
 def sync_all(

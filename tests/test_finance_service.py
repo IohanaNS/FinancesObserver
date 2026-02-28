@@ -86,6 +86,7 @@ class FakeBankingAdapter:
         self.last_date_from: str | None = None
         self.last_date_to: str | None = None
         self.fetch_balances_called = False
+        self.load_balances_cache_called = False
 
     def get_fontes(self) -> list[str]:
         return ["Nubank", "Cartão Crédito", "Outro"]
@@ -117,6 +118,15 @@ class FakeBankingAdapter:
 
     def load_bills_cache(self) -> dict | None:
         return None
+
+    def load_balances_cache(self) -> dict | None:
+        self.load_balances_cache_called = True
+        return {
+            "updated_at": "2026-02-28T12:00:00",
+            "balances": [
+                {"banco": "Nubank", "conta": "Conta Corrente", "saldo": 100.0}
+            ],
+        }
 
 
 class FinanceServiceTestCase(unittest.TestCase):
@@ -229,6 +239,22 @@ class FinanceServiceTestCase(unittest.TestCase):
         self.assertTrue(banking.fetch_balances_called)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0]["banco"], "Nubank")
+
+    def test_load_cached_balances_delegates_to_banking_port(self):
+        repository = FakeFinanceRepository()
+        banking = FakeBankingAdapter()
+        service = FinanceService(
+            transactions=repository,
+            rules=repository,
+            banking=banking,
+        )
+
+        result = service.load_cached_balances()
+
+        self.assertTrue(banking.load_balances_cache_called)
+        assert result is not None
+        self.assertIn("balances", result)
+        self.assertEqual(result["balances"][0]["banco"], "Nubank")
 
 
 if __name__ == "__main__":
