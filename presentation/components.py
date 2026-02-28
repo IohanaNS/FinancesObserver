@@ -10,9 +10,9 @@ def section_header(title: str) -> None:
 
 
 def render_app_header() -> None:
-    st.markdown('<p class="main-title">Controle Financeiro ✈️</p>', unsafe_allow_html=True)
+    st.markdown('<p class="main-title">Controle Financeiro</p>', unsafe_allow_html=True)
     st.markdown(
-        '<p class="subtitle">Organizando as finanças para a Europa — cada real conta!</p>',
+        '<p class="subtitle">Organizando suas finanças — cada real conta!</p>',
         unsafe_allow_html=True,
     )
 

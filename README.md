@@ -17,6 +17,7 @@ Aplicativo Streamlit para controle financeiro pessoal, com foco em:
 - Regras de classificação por palavra-chave (com prioridade para regras mais específicas).
 - Reclassificação em massa das transações já existentes.
 - Análises por categoria, dia, fonte, assinaturas e simulador de economia.
+- Consulta de saldos de contas bancárias via Pluggy.
 - Consulta de faturas/limite de cartões via Pluggy, com cache local.
 - Exportação de transações para CSV e Excel.
 

@@ -25,6 +25,15 @@ def _headers(settings: PluggySettings) -> dict:
     return {"X-API-KEY": _get_api_key(settings)}
 
 
+def _to_float_or_none(value) -> float | None:
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 def fetch_accounts(headers: dict, item_id: str, base_url: str) -> list:
     response = requests.get(f"{base_url}/accounts", params={"itemId": item_id}, headers=headers)
     response.raise_for_status()
@@ -159,6 +168,44 @@ def fetch_credit_card_info(settings: PluggySettings | None = None) -> list[dict]
 
     save_bills_cache(results, settings.bills_cache_file)
     return results
+
+
+def fetch_account_balances(settings: PluggySettings | None = None) -> list[dict]:
+    """
+    Fetch non-credit account balances from all connected items.
+    Returns a normalized list ready to display in the UI.
+    """
+    settings = settings or load_pluggy_settings()
+    if not settings.has_credentials:
+        raise ValueError("Credenciais do Pluggy não configuradas no .env")
+
+    headers = _headers(settings)
+    results: list[dict] = []
+
+    for item_id, bank in settings.item_map.items():
+        accounts = fetch_accounts(headers, item_id, settings.base_url)
+        for account in accounts:
+            if account.get("type") == "CREDIT":
+                continue
+
+            balance = _to_float_or_none(account.get("balance"))
+            available = _to_float_or_none(account.get("availableBalance"))
+            if balance is None and available is None:
+                continue
+
+            results.append(
+                {
+                    "banco": bank,
+                    "conta": account.get("name", "Conta"),
+                    "tipo": account.get("type", "UNKNOWN"),
+                    "subtipo": account.get("subtype", ""),
+                    "saldo": balance,
+                    "saldo_disponivel": available,
+                    "moeda": account.get("currencyCode", "BRL"),
+                }
+            )
+
+    return sorted(results, key=lambda item: (item["banco"], item["conta"]))
 
 
 def sync_all(

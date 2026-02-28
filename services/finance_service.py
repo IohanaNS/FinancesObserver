@@ -78,6 +78,9 @@ class FinanceService:
         )
         return self._transactions.add_synced_transactions(df, transactions)
 
+    def fetch_account_balances(self) -> list[dict]:
+        return self._banking.fetch_account_balances()
+
     def get_summary_by_category(self, df: pd.DataFrame) -> pd.DataFrame:
         return self._transactions.get_summary_by_category(df)
 

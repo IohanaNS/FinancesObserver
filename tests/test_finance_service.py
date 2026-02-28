@@ -85,6 +85,7 @@ class FakeBankingAdapter:
     def __init__(self):
         self.last_date_from: str | None = None
         self.last_date_to: str | None = None
+        self.fetch_balances_called = False
 
     def get_fontes(self) -> list[str]:
         return ["Nubank", "Cartão Crédito", "Outro"]
@@ -99,6 +100,20 @@ class FakeBankingAdapter:
 
     def fetch_credit_card_info(self) -> list[dict]:
         return []
+
+    def fetch_account_balances(self) -> list[dict]:
+        self.fetch_balances_called = True
+        return [
+            {
+                "banco": "Nubank",
+                "conta": "Conta Corrente",
+                "tipo": "BANK",
+                "subtipo": "CHECKING_ACCOUNT",
+                "saldo": 1234.56,
+                "saldo_disponivel": 1200.00,
+                "moeda": "BRL",
+            }
+        ]
 
     def load_bills_cache(self) -> dict | None:
         return None
@@ -199,6 +214,21 @@ class FinanceServiceTestCase(unittest.TestCase):
 
         excel_bytes = service.build_excel_export(df)
         self.assertTrue(excel_bytes.startswith(b"PK"))
+
+    def test_fetch_account_balances_delegates_to_banking_port(self):
+        repository = FakeFinanceRepository()
+        banking = FakeBankingAdapter()
+        service = FinanceService(
+            transactions=repository,
+            rules=repository,
+            banking=banking,
+        )
+
+        result = service.fetch_account_balances()
+
+        self.assertTrue(banking.fetch_balances_called)
+        self.assertEqual(len(result), 1)
+        self.assertEqual(result[0]["banco"], "Nubank")
 
 
 if __name__ == "__main__":

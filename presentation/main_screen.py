@@ -9,6 +9,7 @@ from services import BillsService, FinanceService
 from presentation import render_app_header, render_kpi_cards, render_sidebar
 from presentation.tabs.add_transaction_tab import render_add_transaction_tab
 from presentation.tabs.analysis_tab import render_analysis_tab
+from presentation.tabs.balances_tab import render_balances_tab
 from presentation.tabs.bills_tab import render_bills_tab
 from presentation.tabs.dashboard_tab import render_dashboard_tab
 from presentation.tabs.rules_tab import render_rules_tab
@@ -45,8 +46,16 @@ def _render_tabs(
     sidebar_state: SidebarState,
     formatter: Callable[[float], str],
 ) -> None:
-    tab_dash, tab_transactions, tab_add, tab_rules, tab_analysis, tab_bills = st.tabs(
-        ["📊 Dashboard", "📋 Transações", "➕ Adicionar", "⚙️ Regras", "🔎 Análise", "💳 Faturas"]
+    tab_dash, tab_transactions, tab_add, tab_rules, tab_analysis, tab_balances, tab_bills = st.tabs(
+        [
+            "📊 Dashboard",
+            "📋 Transações",
+            "➕ Adicionar",
+            "⚙️ Regras",
+            "🔎 Análise",
+            "🏦 Saldos",
+            "💳 Faturas",
+        ]
     )
 
     category_icons = finance_service.get_category_icons()
@@ -86,6 +95,9 @@ def _render_tabs(
             saved_so_far=sidebar_state.saved_so_far,
             formatter=formatter,
         )
+
+    with tab_balances:
+        render_balances_tab(finance_service=finance_service, formatter=formatter)
 
     with tab_bills:
         render_bills_tab(bills_service=bills_service, formatter=formatter)
