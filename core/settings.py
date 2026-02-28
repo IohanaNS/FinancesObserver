@@ -63,6 +63,24 @@ def _load_item_map_from_env() -> dict[str, str]:
     return item_map
 
 
+@dataclass(frozen=True)
+class MongoSettings:
+    uri: str
+    database: str
+
+    @property
+    def is_configured(self) -> bool:
+        return bool(self.uri and self.database)
+
+
+def load_mongo_settings() -> MongoSettings:
+    load_dotenv()
+    return MongoSettings(
+        uri=os.getenv("MONGO_URI", ""),
+        database=os.getenv("MONGO_DATABASE", "finances_observer"),
+    )
+
+
 def load_pluggy_settings() -> PluggySettings:
     load_dotenv()
 
