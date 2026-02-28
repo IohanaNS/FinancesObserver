@@ -1,4 +1,4 @@
-# 💰 Controle Financeiro ✈️
+# 💰 Controle Financeiro
 
 App Streamlit para organizar suas finanças.
 
@@ -16,7 +16,7 @@ O app abre em `http://localhost:8501`.
 
 ## Arquitetura
 
-A aplicação foi reorganizada para separar responsabilidades:
+Separação de responsabilidades:
 
 - `app.py`: entrypoint da aplicação
 - `application/`: bootstrap de dependências e estado inicial da sessão
