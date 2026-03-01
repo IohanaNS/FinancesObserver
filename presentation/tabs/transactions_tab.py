@@ -1,6 +1,7 @@
 from collections.abc import Callable
 import math
 from numbers import Real
+from typing import cast
 
 import pandas as pd
 import streamlit as st
@@ -20,6 +21,7 @@ SORT_OPTIONS = [
 ]
 
 UNCATEGORIZED_ALIASES = {"", "outros", "sem categoria"}
+ALL_CATEGORIES_OPTION = "__ALL_CATEGORIES__"
 
 
 @st.dialog("Alterar Categoria")
@@ -205,8 +207,33 @@ def render_transactions_tab(
     max_abs = float(abs_values.max()) if not abs_values.empty else 0.0
 
     type_options = ["Saída", "Entrada"]
-    category_options = sorted(working_df["Categoria"].map(_format_category).unique().tolist())
+    category_counts = cast(
+        dict[str, int],
+        working_df["Categoria"]
+        .map(_format_category)
+        .value_counts()
+        .to_dict(),
+    )
+    category_options = sorted(
+        category_counts.keys(),
+        key=lambda name: (-category_counts.get(name, 0), name.casefold()),
+    )
     source_options = sorted(working_df["Fonte"].dropna().astype(str).unique().tolist())
+
+    category_filter_key = "tx_filter_categories"
+    category_widget_options = [ALL_CATEGORIES_OPTION, *category_options]
+    previous_selected_categories = st.session_state.get(category_filter_key)
+    if previous_selected_categories is None:
+        st.session_state[category_filter_key] = [ALL_CATEGORIES_OPTION]
+    else:
+        selected = [
+            category
+            for category in previous_selected_categories
+            if category in category_widget_options
+        ]
+        if not selected:
+            selected = [ALL_CATEGORIES_OPTION]
+        st.session_state[category_filter_key] = selected
 
     col_filter1, col_filter2 = st.columns([2, 1])
     with col_filter1:
@@ -217,15 +244,40 @@ def render_transactions_tab(
     with col_filter2:
         sort_option = st.selectbox("Ordenar por", SORT_OPTIONS, index=0)
 
-    col_filter3, col_filter4, col_filter5 = st.columns(3)
+    col_filter3, col_filter4, col_filter5 = st.columns([1, 2, 1])
     with col_filter3:
         selected_types = st.multiselect("Tipo", type_options, default=type_options)
     with col_filter4:
-        selected_categories = st.multiselect(
+        category_selection_raw = st.multiselect(
             "Categoria",
-            category_options,
-            default=category_options,
+            category_widget_options,
+            key=category_filter_key,
+            placeholder="Digite para buscar categorias...",
+            format_func=lambda category: (
+                "Todas as categorias"
+                if category == ALL_CATEGORIES_OPTION
+                else (
+                    f"{category_icons.get(category, '📌')} "
+                    f"{category} ({category_counts.get(category, 0)})"
+                )
+            ),
+            help=(
+                "Use a busca do seletor para encontrar categorias rapidamente. "
+                "O número entre parênteses mostra quantas transações há no recorte."
+            ),
         )
+        selected_categories = [
+            str(category)
+            for category in category_selection_raw
+        ]
+        all_selected = (
+            not selected_categories
+            or ALL_CATEGORIES_OPTION in selected_categories
+        )
+        selected_count = len(category_options) if all_selected else len(selected_categories)
+        st.caption(f"Categorias selecionadas: {selected_count} de {len(category_options)}")
+
+        categories_to_filter: list[str] = category_options if all_selected else selected_categories
     with col_filter5:
         selected_sources = st.multiselect("Fonte", source_options, default=source_options)
 
@@ -250,7 +302,7 @@ def render_transactions_tab(
         working_df,
         query=query,
         types=selected_types,
-        categories=selected_categories,
+        categories=categories_to_filter,
         sources=selected_sources,
         min_abs_value=min_value,
         max_abs_value=max_value,
