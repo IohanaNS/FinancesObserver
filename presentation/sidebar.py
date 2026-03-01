@@ -83,14 +83,20 @@ def render_sidebar(
         if df.empty or pd.isna(df["Data"].min()):
             date_min = date.today()
             date_max = date.today()
+            default_start = date_min
+            default_end = date_max
         else:
+            date_min = df["Data"].dt.date.min()
+            data_max = df["Data"].dt.date.max()
             today = date.today()
-            date_min = date(today.year, today.month, 1)
-            date_max = today
+            date_max = max(data_max, today)
+            # Default to the most recent month with data
+            default_start = date(data_max.year, data_max.month, 1)
+            default_end = data_max
 
         date_selection = st.date_input(
             "Período",
-            value=(date_min, date_max),
+            value=(default_start, default_end),
             min_value=date_min,
             max_value=date_max,
         )
