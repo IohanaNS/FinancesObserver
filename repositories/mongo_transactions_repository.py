@@ -150,8 +150,11 @@ class MongoTransactionsRepository:
         transactions: list[dict],
     ) -> tuple[pd.DataFrame, int]:
         """
-        Merge Pluggy transactions into the DataFrame, deduplicating by pluggy_id.
-        Returns (updated_df, count_of_new_transactions).
+        Merge Pluggy transactions into the DataFrame.
+        - Skips transactions whose pluggy_id already exists.
+        - If a manual entry (no pluggy_id) with same date and exact value exists,
+          links it to the Pluggy transaction instead of creating a duplicate.
+        Returns (updated_df, count_of_new_rows_added).
         """
         if not transactions:
             return df, 0
@@ -160,14 +163,33 @@ class MongoTransactionsRepository:
             df["pluggy_id"] = None
 
         existing_ids = set(df["pluggy_id"].dropna().astype(str))
-        new_rows = [tx for tx in transactions if tx["pluggy_id"] not in existing_ids]
+        new_rows: list[dict] = []
 
-        if not new_rows:
-            return df, 0
+        for tx in transactions:
+            if tx["pluggy_id"] in existing_ids:
+                continue
 
-        new_df = pd.DataFrame(new_rows)
-        new_df["Data"] = pd.to_datetime(new_df["Data"])
-        df = pd.concat([df, new_df], ignore_index=True)
+            tx_date = pd.to_datetime(tx["Data"]).strftime("%Y-%m-%d")
+            tx_valor = round(float(tx["Valor"]), 2)
+
+            manual_mask = (
+                df["pluggy_id"].isna()
+                & (df["Data"].dt.strftime("%Y-%m-%d") == tx_date)
+                & (df["Valor"].round(2) == tx_valor)
+            )
+            if manual_mask.any():
+                match_idx = df[manual_mask].index[0]
+                df.at[match_idx, "pluggy_id"] = tx["pluggy_id"]
+                existing_ids.add(tx["pluggy_id"])
+            else:
+                new_rows.append(tx)
+                existing_ids.add(tx["pluggy_id"])
+
+        if new_rows:
+            new_df = pd.DataFrame(new_rows)
+            new_df["Data"] = pd.to_datetime(new_df["Data"])
+            df = pd.concat([df, new_df], ignore_index=True)
+
         df = self.deduplicate_cross_bank(df)
         df = df.sort_values("Data").reset_index(drop=True)
         self.save_data(df)
