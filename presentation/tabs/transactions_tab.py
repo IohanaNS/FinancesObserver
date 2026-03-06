@@ -41,6 +41,7 @@ def _category_change_dialog(finance_service: FinanceService) -> None:
     with col1:
         if st.button("Apenas esta", use_container_width=True):
             st.session_state.df.at[idx, "Categoria"] = new_cat
+            st.session_state.df.at[idx, "categoria_manual"] = True
             finance_service.save_dataframe(st.session_state.df)
             del st.session_state.pending_cat_change
             st.session_state.tx_editor_v = st.session_state.get("tx_editor_v", 0) + 1
@@ -337,7 +338,9 @@ def render_transactions_tab(
         return
 
     # Build display DataFrame preserving original index for mapping back
-    display_df = observed_df[["Data", "Descrição", "Tipo", "Valor", "Categoria", "Fonte"]].copy()
+    display_df = observed_df[["Data", "Descrição", "Tipo", "Valor", "Categoria", "Fonte", "categoria_manual"]].copy()
+    display_df["🔒"] = display_df["categoria_manual"].map(lambda v: "🔒" if v else "")
+    display_df = display_df.drop(columns=["categoria_manual"])
 
     editor_key = f"tx_editor_{st.session_state.get('tx_editor_v', 0)}"
 
@@ -358,6 +361,12 @@ def render_transactions_tab(
                 required=True,
             ),
             "Fonte": st.column_config.TextColumn("Fonte", disabled=True),
+            "🔒": st.column_config.TextColumn(
+                "🔒",
+                disabled=True,
+                width="small",
+                help="Categoria definida manualmente — protegida da reclassificação automática",
+            ),
         },
         key=editor_key,
     )

@@ -57,6 +57,8 @@ class MongoTransactionsRepository:
             df["Data"] = pd.to_datetime(df["Data"])
         if "pluggy_id" not in df.columns:
             df["pluggy_id"] = None
+        if "categoria_manual" not in df.columns:
+            df["categoria_manual"] = False
         return df
 
     def _docs_to_dataframe(self, docs: list[dict]) -> pd.DataFrame:

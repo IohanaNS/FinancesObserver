@@ -6,7 +6,7 @@ INVESTMENTS_CACHE_FILE = "investimentos_cache.json"
 
 ACCOUNTS_FILE = "contas.json"
 FONTES_SINTETICAS = ["Outro"]
-TRANSACTION_COLUMNS = ["Data", "Descrição", "Valor", "Tipo", "Categoria", "Fonte", "pluggy_id"]
+TRANSACTION_COLUMNS = ["Data", "Descrição", "Valor", "Tipo", "Categoria", "Fonte", "pluggy_id", "categoria_manual"]
 
 # Categories that represent internal movements (not real expenses)
 CROSS_BANK_CATEGORIES = {

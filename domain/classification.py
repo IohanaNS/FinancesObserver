@@ -58,6 +58,8 @@ def reclassify_dataframe(
     """
     skip = skip_categories or DEFAULT_RECLASSIFY_SKIP
     for idx, row in df.iterrows():
+        if row.get("categoria_manual", False):
+            continue
         exact_cat = classify_exact_description(str(row["Descrição"]), rules)
         if exact_cat:
             df.at[idx, "Categoria"] = exact_cat
