@@ -6,7 +6,7 @@ def configure_page() -> None:
         page_title="Financeiro",
         page_icon="✈️",
         layout="wide",
-        initial_sidebar_state="expanded",
+        initial_sidebar_state="auto",
     )
 
 
@@ -114,6 +114,91 @@ def inject_styles() -> None:
     .rule-keyword { font-weight: 600; color: var(--text-color); }
     .rule-arrow { color: color-mix(in srgb, var(--text-color) 50%, transparent); }
     .rule-category { color: var(--text-color); opacity: 0.9; }
+
+    /* ── Mobile responsiveness ── */
+    @media screen and (max-width: 768px) {
+        /* Compact container padding */
+        .main .block-container {
+            padding-left: 0.75rem !important;
+            padding-right: 0.75rem !important;
+            padding-top: 0.5rem !important;
+        }
+
+        /* Typography */
+        .main-title { font-size: 1.5rem !important; }
+        .subtitle { font-size: 0.82rem !important; margin-bottom: 12px !important; }
+        .section-header { font-size: 1.05rem !important; margin: 16px 0 10px 0 !important; }
+
+        /* KPI cards */
+        .metric-card { padding: 12px 10px !important; border-radius: 12px !important; }
+        .metric-value { font-size: 1.1rem !important; }
+        .metric-label { font-size: 0.72rem !important; }
+
+        /* Stack all columns vertically */
+        [data-testid="stHorizontalBlock"],
+        div.stHorizontalBlock {
+            flex-wrap: wrap !important;
+        }
+        [data-testid="stColumn"],
+        div.stColumn {
+            width: 100% !important;
+            min-width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+
+        /* Bigger touch targets for buttons */
+        .stButton > button {
+            min-height: 44px !important;
+            font-size: 0.95rem !important;
+            border-radius: 10px !important;
+        }
+
+        /* Theme toggle: keep compact and right-aligned on mobile */
+        [data-testid="stHorizontalBlock"]:has(#ui_theme_switch) {
+            justify-content: flex-end !important;
+        }
+        [data-testid="stHorizontalBlock"]:has(#ui_theme_switch) [data-testid="stColumn"] {
+            min-width: auto !important;
+            flex: 0 0 auto !important;
+            width: auto !important;
+        }
+
+        /* Larger form inputs */
+        .stTextInput input,
+        .stNumberInput input {
+            min-height: 44px !important;
+            font-size: 1rem !important;
+        }
+        .stSelectbox > div > div {
+            min-height: 44px !important;
+        }
+        .stDateInput input {
+            min-height: 44px !important;
+            font-size: 1rem !important;
+        }
+
+        /* Tabs: horizontally scrollable strip */
+        .stTabs [data-baseweb="tab-list"] {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+            flex-wrap: nowrap !important;
+            scrollbar-width: none !important;
+        }
+        .stTabs [data-baseweb="tab-list"]::-webkit-scrollbar { display: none !important; }
+        .stTabs [data-baseweb="tab"] {
+            white-space: nowrap !important;
+            padding: 8px 10px !important;
+            font-size: 0.78rem !important;
+            min-width: auto !important;
+        }
+
+        /* Tables & data editors: horizontal scroll */
+        [data-testid="stDataFrame"] > div,
+        [data-testid="stDataEditor"] > div {
+            overflow-x: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+        }
+    }
 </style>
 """
     st.html(css)
