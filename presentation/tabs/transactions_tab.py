@@ -337,10 +337,13 @@ def render_transactions_tab(
         st.warning("Nenhuma transação atende aos filtros locais atuais.")
         return
 
-    # Build display DataFrame preserving original index for mapping back
+    # Build display DataFrame; save original index mapping before reset
     display_df = observed_df[["Data", "Descrição", "Tipo", "Valor", "Categoria", "Fonte", "categoria_manual"]].copy()
-    display_df["🔒"] = display_df["categoria_manual"].map(lambda v: "🔒" if v else "")
+    display_df["🔒"] = display_df["categoria_manual"].astype(bool)
     display_df = display_df.drop(columns=["categoria_manual"])
+    display_df["🗑"] = False
+    orig_index = display_df.index.tolist()  # positional → st.session_state.df index
+    display_df = display_df.reset_index(drop=True)
 
     editor_key = f"tx_editor_{st.session_state.get('tx_editor_v', 0)}"
 
@@ -351,39 +354,96 @@ def render_transactions_tab(
         hide_index=True,
         num_rows="fixed",
         column_config={
-            "Data": st.column_config.DateColumn("Data", format="DD/MM/YYYY", disabled=True),
-            "Descrição": st.column_config.TextColumn("Descrição", disabled=True, width="large"),
-            "Tipo": st.column_config.TextColumn("Tipo", disabled=True, width="small"),
-            "Valor": st.column_config.NumberColumn("Valor", format="R$ %.2f", disabled=True),
+            "Data": st.column_config.DateColumn("Data", format="DD/MM/YYYY"),
+            "Descrição": st.column_config.TextColumn("Descrição", width="large"),
+            "Tipo": st.column_config.SelectboxColumn(
+                "Tipo",
+                options=["Entrada", "Saída"],
+                width="small",
+            ),
+            "Valor": st.column_config.NumberColumn("Valor", format="R$ %.2f"),
             "Categoria": st.column_config.SelectboxColumn(
                 "Categoria",
                 options=categories,
                 required=True,
             ),
             "Fonte": st.column_config.TextColumn("Fonte", disabled=True),
-            "🔒": st.column_config.TextColumn(
+            "🔒": st.column_config.CheckboxColumn(
                 "🔒",
-                disabled=True,
-                width="small",
-                help="Categoria definida manualmente — protegida da reclassificação automática",
+                help="Proteger categoria da reclassificação automática",
+            ),
+            "🗑": st.column_config.CheckboxColumn(
+                "🗑",
+                help="Marcar para deletar — salvo ao marcar",
             ),
         },
         key=editor_key,
     )
 
-    # Detect category change (only if no pending dialog)
+    # Detect edits (only if no pending dialog)
     if "pending_cat_change" not in st.session_state:
-        changed_indices = edited_df.index[
-            edited_df["Categoria"].fillna("") != display_df["Categoria"].fillna("")
-        ]
-        if len(changed_indices) > 0:
-            idx = changed_indices[0]
+        edited_view = edited_df
+        display_view = display_df
+
+        # Deletion via 🗑 checkbox
+        to_delete_mask = edited_view["🗑"].astype(bool)
+        if to_delete_mask.any():
+            deleted_orig = [orig_index[i] for i in edited_view.index[to_delete_mask]]
+            st.session_state.df = (
+                st.session_state.df.drop(index=deleted_orig).reset_index(drop=True)
+            )
+            finance_service.save_dataframe(st.session_state.df)
+            st.session_state.tx_editor_v = st.session_state.get("tx_editor_v", 0) + 1
+            st.rerun()
+
+        # Category change → dialog
+        changed_cat_mask = (
+            edited_view["Categoria"].fillna("") != display_view["Categoria"].fillna("")
+        )
+        if changed_cat_mask.any():
+            pos = edited_view.index[changed_cat_mask][0]
+            orig_idx = orig_index[pos]
             st.session_state.pending_cat_change = {
-                "index": idx,
-                "description": observed_df.at[idx, "Descrição"],
-                "old_category": _format_category(display_df.at[idx, "Categoria"]),
-                "new_category": _format_category(edited_df.at[idx, "Categoria"]),
+                "index": orig_idx,
+                "description": observed_df.at[orig_idx, "Descrição"],
+                "old_category": _format_category(display_view.at[pos, "Categoria"]),
+                "new_category": _format_category(edited_view.at[pos, "Categoria"]),
             }
+            st.rerun()
+
+        # Direct field changes → save immediately
+        data_changed = pd.to_datetime(edited_view["Data"], errors="coerce") != pd.to_datetime(display_view["Data"], errors="coerce")
+        desc_changed = edited_view["Descrição"].fillna("") != display_view["Descrição"].fillna("")
+        tipo_changed = edited_view["Tipo"].fillna("") != display_view["Tipo"].fillna("")
+        valor_changed = edited_view["Valor"].round(2) != display_view["Valor"].round(2)
+        lock_changed = edited_view["🔒"].astype(bool) != display_view["🔒"].astype(bool)
+        any_changed = data_changed | desc_changed | tipo_changed | valor_changed | lock_changed  # 🗑 handled above
+
+        if any_changed.any():
+            for pos in edited_view.index[any_changed]:
+                orig_idx = orig_index[pos]
+                if data_changed.at[pos]:
+                    new_data = pd.to_datetime(str(edited_view.at[pos, "Data"]), errors="coerce")
+                    if not pd.isna(new_data):
+                        st.session_state.df.at[orig_idx, "Data"] = new_data
+                if desc_changed.at[pos]:
+                    st.session_state.df.at[orig_idx, "Descrição"] = edited_view.at[pos, "Descrição"]
+                if tipo_changed.at[pos]:
+                    new_tipo = str(edited_view.at[pos, "Tipo"] or "")
+                    if new_tipo in ("Entrada", "Saída"):
+                        st.session_state.df.at[orig_idx, "Tipo"] = new_tipo
+                        current_valor = float(st.session_state.df.at[orig_idx, "Valor"] or 0)
+                        if new_tipo == "Entrada" and current_valor < 0:
+                            st.session_state.df.at[orig_idx, "Valor"] = abs(current_valor)
+                        elif new_tipo == "Saída" and current_valor > 0:
+                            st.session_state.df.at[orig_idx, "Valor"] = -abs(current_valor)
+                if valor_changed.at[pos]:
+                    raw = pd.to_numeric(edited_view.at[pos, "Valor"], errors="coerce")
+                    st.session_state.df.at[orig_idx, "Valor"] = 0.0 if pd.isna(raw) else float(raw)
+                if lock_changed.at[pos]:
+                    st.session_state.df.at[orig_idx, "categoria_manual"] = bool(edited_view.at[pos, "🔒"])
+            finance_service.save_dataframe(st.session_state.df)
+            st.session_state.tx_editor_v = st.session_state.get("tx_editor_v", 0) + 1
             st.rerun()
 
     st.markdown(f"**{len(display_df)} transações** exibidas")
