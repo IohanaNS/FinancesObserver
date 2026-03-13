@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 
 import pandas as pd
 
@@ -139,22 +140,29 @@ class TransactionsRepository:
         existing_ids = set(df["pluggy_id"].dropna().astype(str))
         new_rows: list[dict] = []
 
+        linked_manual_indices: set[int] = set()
+
         for tx in transactions:
             if tx["pluggy_id"] in existing_ids:
                 continue
 
-            tx_date = pd.to_datetime(tx["Data"]).strftime("%Y-%m-%d")
+            tx_date = pd.to_datetime(tx["Data"])
             tx_valor = round(float(tx["Valor"]), 2)
+            date_lo = tx_date - timedelta(days=2)
+            date_hi = tx_date + timedelta(days=2)
 
             manual_mask = (
                 df["pluggy_id"].isna()
-                & (df["Data"].dt.strftime("%Y-%m-%d") == tx_date)
+                & (df["Data"] >= date_lo)
+                & (df["Data"] <= date_hi)
                 & (df["Valor"].round(2) == tx_valor)
+                & ~df.index.isin(linked_manual_indices)
             )
             if manual_mask.any():
                 match_idx = df[manual_mask].index[0]
                 df.at[match_idx, "pluggy_id"] = tx["pluggy_id"]
                 existing_ids.add(tx["pluggy_id"])
+                linked_manual_indices.add(match_idx)
             else:
                 new_rows.append(tx)
                 existing_ids.add(tx["pluggy_id"])

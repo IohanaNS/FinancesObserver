@@ -67,7 +67,7 @@ def _handle_sync_request(finance_service: FinanceService, sidebar_state: Sidebar
         return st.session_state.df
 
     try:
-        with st.spinner("Buscando transações no Pluggy..."):
+        with st.spinner("Atualizando dados bancários e buscando transações no Pluggy (pode levar alguns minutos)..."):
             st.session_state.df, count = finance_service.sync_transactions(
                 st.session_state.df,
                 sidebar_state.sync_from,

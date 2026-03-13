@@ -1,12 +1,16 @@
 from collections.abc import Callable
 from datetime import datetime, timedelta
 import json
+import logging
 import os
+import time
 
 import pandas as pd
 import requests
 
 from core.settings import PluggySettings, load_pluggy_settings
+
+logger = logging.getLogger(__name__)
 
 
 def _get_api_key(settings: PluggySettings) -> str:
@@ -260,6 +264,7 @@ def fetch_credit_card_info(settings: PluggySettings | None = None) -> list[dict]
         raise ValueError("Credenciais do Pluggy não configuradas no .env")
 
     headers = _headers(settings)
+    _trigger_and_wait_for_updates(headers, settings)
     results = []
 
     for item_id, bank in settings.item_map.items():
@@ -297,6 +302,7 @@ def fetch_account_balances(settings: PluggySettings | None = None) -> list[dict]
         raise ValueError("Credenciais do Pluggy não configuradas no .env")
 
     headers = _headers(settings)
+    _trigger_and_wait_for_updates(headers, settings)
     results: list[dict] = []
 
     for item_id, bank in settings.item_map.items():
@@ -337,6 +343,7 @@ def fetch_investments(settings: PluggySettings | None = None) -> list[dict]:
         raise ValueError("Credenciais do Pluggy não configuradas no .env")
 
     headers = _headers(settings)
+    _trigger_and_wait_for_updates(headers, settings)
     results: list[dict] = []
 
     for item_id, bank in settings.item_map.items():
@@ -351,6 +358,77 @@ def fetch_investments(settings: PluggySettings | None = None) -> list[dict]:
     investments = sorted(results, key=lambda item: (item["banco"], item["investimento"]))
     save_investments_cache(investments, settings.investments_cache_file)
     return investments
+
+
+def _trigger_and_wait_for_updates(
+    headers: dict,
+    settings: PluggySettings,
+) -> None:
+    """Trigger a fresh data sync for all items and wait until they finish."""
+    item_ids = list(settings.item_map.keys())
+    for item_id in item_ids:
+        try:
+            update_item(headers, item_id, settings.base_url)
+            logger.info("Update triggered for item %s", item_id[:8])
+        except requests.HTTPError as exc:
+            logger.warning("Failed to trigger update for item %s: %s", item_id[:8], exc)
+
+    if item_ids:
+        wait_for_items_update(headers, item_ids, settings.base_url)
+
+
+def update_item(headers: dict, item_id: str, base_url: str) -> dict:
+    """Trigger a fresh data update for a Pluggy item (re-fetches from the bank)."""
+    response = requests.patch(
+        f"{base_url}/items/{item_id}",
+        headers=headers,
+        json={},
+        timeout=30,
+    )
+    response.raise_for_status()
+    return response.json()
+
+
+def wait_for_items_update(
+    headers: dict,
+    item_ids: list[str],
+    base_url: str,
+    timeout_seconds: int = 180,
+    poll_interval: int = 5,
+) -> None:
+    """Poll item status until all items finish updating or timeout is reached."""
+    deadline = time.time() + timeout_seconds
+    pending = set(item_ids)
+
+    while pending and time.time() < deadline:
+        time.sleep(poll_interval)
+        for item_id in list(pending):
+            response = requests.get(
+                f"{base_url}/items/{item_id}",
+                headers=headers,
+                timeout=15,
+            )
+            if response.status_code != 200:
+                continue
+            item = response.json()
+            status = item.get("executionStatus", "")
+            if status in ("SUCCESS", "PARTIAL_SUCCESS"):
+                pending.discard(item_id)
+                logger.info("Item %s updated successfully.", item_id[:8])
+            elif status in ("ERROR",):
+                pending.discard(item_id)
+                error = item.get("error", {})
+                logger.warning(
+                    "Item %s update failed: %s",
+                    item_id[:8],
+                    error.get("message", "unknown error"),
+                )
+
+    if pending:
+        logger.warning(
+            "Timeout waiting for items: %s",
+            [i[:8] for i in pending],
+        )
 
 
 def sync_all(
@@ -374,6 +452,7 @@ def sync_all(
 
     categorize = categorize or (lambda _description: "Outros")
     headers = _headers(settings)
+    _trigger_and_wait_for_updates(headers, settings)
     all_transactions = []
 
     for item_id, bank in settings.item_map.items():
