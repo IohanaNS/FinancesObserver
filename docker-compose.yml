@@ -1,0 +1,16 @@
+services:
+  financas:
+    build: .
+    container_name: financas-observer
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./dados_financeiros.csv:/app/dados_financeiros.csv:z
+      - ./regras_classificacao.json:/app/regras_classificacao.json:z
+      - ./contas.json:/app/contas.json:z
+      - ./faturas_cache.json:/app/faturas_cache.json:z
+      - ./investimentos_cache.json:/app/investimentos_cache.json:z
+      - ./saldos_cache.json:/app/saldos_cache.json:z
+    env_file:
+      - .env
+    restart: unless-stopped
