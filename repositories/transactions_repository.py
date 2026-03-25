@@ -172,10 +172,30 @@ class TransactionsRepository:
             new_df["Data"] = pd.to_datetime(new_df["Data"])
             df = pd.concat([df, new_df], ignore_index=True)
 
+        df = self._deduplicate_same_transaction(df)
         df = self.deduplicate_cross_bank(df)
         df = df.sort_values("Data").reset_index(drop=True)
         self.save_data(df)
         return df, len(new_rows)
+
+    @staticmethod
+    def _deduplicate_same_transaction(df: pd.DataFrame) -> pd.DataFrame:
+        """Remove duplicates: same date, same value, same type (Entrada/Saída).
+
+        Keeps the row that has a pluggy_id (if any) over one without.
+        """
+        if df.empty:
+            return df
+
+        df = df.copy()
+        df["_date_str"] = df["Data"].dt.strftime("%Y-%m-%d")
+        df["_val_round"] = df["Valor"].round(2)
+        # Sort so rows WITH pluggy_id come first (kept by drop_duplicates)
+        df["_has_pid"] = df["pluggy_id"].notna()
+        df = df.sort_values("_has_pid", ascending=False)
+        df = df.drop_duplicates(subset=["_date_str", "_val_round", "Tipo"], keep="first")
+        df = df.drop(columns=["_date_str", "_val_round", "_has_pid"])
+        return df.reset_index(drop=True)
 
     def deduplicate_cross_bank(self, df: pd.DataFrame) -> pd.DataFrame:
         return deduplicate_cross_bank_transactions(df, CROSS_BANK_CATEGORIES)

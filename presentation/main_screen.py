@@ -3,6 +3,7 @@ from collections.abc import Callable
 import pandas as pd
 import streamlit as st
 
+from core.models import SidebarState
 from ports.accounts_port import AccountsPort
 from services import BillsService, FinanceService
 
