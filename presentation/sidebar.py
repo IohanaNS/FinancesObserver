@@ -1,3 +1,4 @@
+import calendar
 from datetime import date
 
 import pandas as pd
@@ -54,10 +55,12 @@ def render_sidebar(
         st.divider()
         st.markdown("## 🔄 Sincronizar Pluggy")
         sync_cols = st.columns(2)
+        today = date.today()
+        last_day = calendar.monthrange(today.year, today.month)[1]
         with sync_cols[0]:
-            sync_from = st.date_input("De", value=date(2026, 2, 1), key="sync_from")
+            sync_from = st.date_input("De", value=date(today.year, today.month, 1), key="sync_from")
         with sync_cols[1]:
-            sync_to = st.date_input("Até", value=date.today(), key="sync_to")
+            sync_to = st.date_input("Até", value=date(today.year, today.month, last_day), key="sync_to")
 
         sync_requested = st.button("Sincronizar", use_container_width=True)
 
