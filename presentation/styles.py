@@ -84,17 +84,6 @@ def inject_styles() -> None:
     .metric-blue { color: #2563eb; }
     .metric-amber { color: #d97706; }
 
-    .goal-bar-bg {
-        background: color-mix(in srgb, currentColor 16%, transparent);
-        border-radius: 12px; height: 28px; overflow: hidden; margin: 8px 0;
-    }
-    .goal-bar-fill {
-        height: 100%; border-radius: 12px;
-        background: linear-gradient(90deg, #059669 0%, #10b981 100%);
-        transition: width 0.8s ease; display: flex; align-items: center; justify-content: center;
-        color: white; font-weight: 600; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace;
-    }
-
     .section-header {
         font-size: 1.3rem; font-weight: 700;
         color: var(--text-color) !important;

@@ -9,7 +9,7 @@ from core.constants import (
     TRANSACTION_COLUMNS,
 )
 from core.formatting import fmt_brl
-from core.models import FinanceKpis, SavingsSimulation, SidebarState
+from core.models import FinanceKpis, SidebarState
 from core.settings import MongoSettings, PluggySettings, load_mongo_settings, load_pluggy_settings
 
 __all__ = [
@@ -23,7 +23,6 @@ __all__ = [
     "CATEGORY_SUBSCRIPTIONS",
     "fmt_brl",
     "FinanceKpis",
-    "SavingsSimulation",
     "SidebarState",
     "MongoSettings",
     "PluggySettings",

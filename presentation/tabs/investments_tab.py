@@ -21,38 +21,13 @@ def _format_updated_at(value: str) -> str:
         return value
 
 
-def _render_goal_progress(total_balance: float, goal: float, formatter: Callable[[float], str]) -> None:
-    progress = min(total_balance / goal, 1.0) if goal > 0 else 0.0
-    missing = max(goal - total_balance, 0.0) if goal > 0 else 0.0
-
-    st.markdown(
-        f"""
-        <div style="margin: 16px 0;">
-            <div class="goal-bar-bg">
-                <div class="goal-bar-fill" style="width: {progress*100:.0f}%">{progress*100:.1f}%</div>
-            </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.85rem; color:currentColor; opacity:0.8;">
-                <span>Investido: {formatter(total_balance)}</span>
-                <span>Meta: {formatter(goal)}</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    if goal > 0 and missing > 0:
-        st.info(f"Faltam **{formatter(missing)}** para atingir sua meta financeira.")
-    elif goal > 0:
-        st.success("Meta financeira atingida com seus investimentos atuais.")
-
-
 def render_investments_tab(
     finance_service: FinanceService,
     formatter: Callable[[float], str],
 ) -> None:
     section_header("📈 Investimentos")
     st.caption(
-        "Acompanha investimentos/caixinhas conectados no Pluggy e o progresso para sua meta financeira."
+        "Acompanha investimentos/caixinhas conectados no Pluggy."
     )
 
     if "investments_data" not in st.session_state:
@@ -60,8 +35,6 @@ def render_investments_tab(
         if cache:
             st.session_state.investments_data = cache.get("investments", [])
             st.session_state.investments_updated = cache.get("updated_at")
-
-    goal = float(st.session_state.get("goal", 15000.0))
 
     if st.button("🔄 Atualizar Investimentos", use_container_width=True, key="fetch_investments"):
         try:
@@ -107,8 +80,6 @@ def render_investments_tab(
             f'<div class="metric-value metric-amber">{formatter(total_estimated)}</div></div>',
             unsafe_allow_html=True,
         )
-        _render_goal_progress(total_estimated, goal, formatter)
-
         estimated_display = estimated.copy()
         for column in ["Aportes", "Resgates", "Saldo Estimado"]:
             estimated_display[column] = estimated_display[column].apply(
@@ -135,8 +106,6 @@ def render_investments_tab(
             f'<div class="metric-value metric-green">{formatter(total_available)}</div></div>',
             unsafe_allow_html=True,
         )
-
-    _render_goal_progress(total_balance, goal, formatter)
 
     raw = pd.DataFrame(investments).rename(
         columns={

@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from datetime import date
 
 import pandas as pd
@@ -6,7 +5,6 @@ import streamlit as st
 
 from core.models import SidebarState
 from ports.accounts_port import AccountsPort
-from services.finance_service import FinanceService
 
 
 def _coerce_date_range(value: date | tuple[date, ...] | list[date]) -> tuple[date, date]:
@@ -19,66 +17,15 @@ def _coerce_date_range(value: date | tuple[date, ...] | list[date]) -> tuple[dat
     return value, value
 
 
-def _get_invested_total(finance_service: FinanceService) -> float:
-    cache = finance_service.load_cached_investments()
-    if not cache:
-        return 0.0
-    investments = cache.get("investments", [])
-    return sum(
-        item.get("saldo_atual", 0.0)
-        for item in investments
-        if item.get("saldo_atual") is not None
-    )
-
-
 def render_sidebar(
     df: pd.DataFrame,
     categories: list[str],
     fontes: list[str],
-    finance_service: FinanceService,
-    formatter: Callable[[float], str],
     accounts_adapter: AccountsPort | None = None,
 ) -> SidebarState:
     with st.sidebar:
         st.markdown("## Controle Financeiro 📊")
 
-        if "goal" not in st.session_state:
-            st.session_state.goal = 15000.0
-        travel_goal = st.number_input(
-            "Meta de economia (R$)", min_value=0.0, step=500.0, key="goal"
-        )
-
-        if "goal_months" not in st.session_state:
-            st.session_state.goal_months = 12
-        months_left = st.number_input(
-            "Prazo para atingir (meses)", min_value=1, step=1, key="goal_months"
-        )
-
-        saved_so_far = _get_invested_total(finance_service)
-        pct = min(saved_so_far / travel_goal, 1.0) if travel_goal > 0 else 0
-
-        st.markdown(
-            f"""
-        <div style="margin: 16px 0;">
-            <div class="goal-bar-bg">
-                <div class="goal-bar-fill" style="width: {pct*100:.0f}%">{pct*100:.1f}%</div>
-            </div>
-            <div style="display:flex; justify-content:space-between; font-size:0.8rem; color:currentColor; opacity:0.8;">
-                <span>{formatter(saved_so_far)}</span>
-                <span>{formatter(travel_goal)}</span>
-            </div>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-        remaining = max(travel_goal - saved_so_far, 0.0)
-        monthly_needed = remaining / months_left if months_left > 0 else 0
-        st.markdown(f"**Investido:** {formatter(saved_so_far)}")
-        st.markdown(f"**Falta:** {formatter(remaining)}")
-        st.markdown(f"**Por mês:** {formatter(monthly_needed)} nos próximos {months_left} meses")
-
-        st.divider()
         st.markdown("## 🔍 Filtros")
         if df.empty or pd.isna(df["Data"].min()):
             date_min = date.today()
@@ -148,8 +95,6 @@ def render_sidebar(
                         st.warning("Preencha ambos os campos.")
 
     return SidebarState(
-        travel_goal=travel_goal,
-        months_left=months_left,
         date_range=date_range,
         filter_cats=filter_cats,
         filter_fontes=filter_fontes,

@@ -89,8 +89,6 @@ class FakeBankingAdapter:
         self.load_balances_cache_called = False
         self.fetch_investments_called = False
         self.load_investments_cache_called = False
-        self.saved_investments_goal: float | None = None
-
     def get_fontes(self) -> list[str]:
         return ["Nubank", "Cartão Crédito", "Outro"]
 
@@ -149,15 +147,10 @@ class FakeBankingAdapter:
         self.load_investments_cache_called = True
         return {
             "updated_at": "2026-02-28T12:00:00",
-            "goal": 5000.0,
             "investments": [
                 {"banco": "Nubank", "investimento": "Caixinha Viagem", "saldo_atual": 3000.0}
             ],
         }
-
-    def save_investments_goal(self, goal: float, months: int | None = None) -> None:
-        self.saved_investments_goal = goal
-        self.saved_investments_goal_months = months
 
 
 class FinanceServiceTestCase(unittest.TestCase):
@@ -199,33 +192,6 @@ class FinanceServiceTestCase(unittest.TestCase):
         self.assertEqual(kpis.total_real_expenses, -100.0)
         self.assertEqual(kpis.total_invested, -200.0)
         self.assertAlmostEqual(kpis.pct_salary, 2.0)
-
-    def test_calculate_savings_simulation_returns_projection(self):
-        repository = FakeFinanceRepository()
-        service = FinanceService(
-            transactions=repository,
-            rules=repository,
-            banking=FakeBankingAdapter(),
-        )
-        summary = pd.DataFrame(
-            [
-                {"Categoria": "Transporte", "Total": 300.0},
-                {"Categoria": "Outros", "Total": 100.0},
-            ]
-        )
-
-        simulation = service.calculate_savings_simulation(
-            summary_by_category=summary,
-            selected_categories=["Transporte"],
-            cut_pct=30,
-            travel_goal=1500.0,
-            saved_so_far=300.0,
-        )
-
-        assert simulation is not None
-        self.assertEqual(simulation.monthly_saving, 90.0)
-        self.assertEqual(simulation.yearly_saving, 1080.0)
-        self.assertAlmostEqual(simulation.months_to_goal or 0.0, 13.3333333333, places=4)
 
     def test_build_exports_excludes_pluggy_id(self):
         repository = FakeFinanceRepository()
@@ -317,19 +283,6 @@ class FinanceServiceTestCase(unittest.TestCase):
         assert result is not None
         self.assertIn("investments", result)
         self.assertEqual(result["investments"][0]["investimento"], "Caixinha Viagem")
-
-    def test_save_investments_goal_delegates_to_banking_port(self):
-        repository = FakeFinanceRepository()
-        banking = FakeBankingAdapter()
-        service = FinanceService(
-            transactions=repository,
-            rules=repository,
-            banking=banking,
-        )
-
-        service.save_investments_goal(12000.0)
-
-        self.assertEqual(banking.saved_investments_goal, 12000.0)
 
     def test_estimate_investments_from_transactions_groups_by_source(self):
         repository = FakeFinanceRepository()

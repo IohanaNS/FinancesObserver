@@ -11,8 +11,6 @@ def render_analysis_tab(
     filtered_df: pd.DataFrame,
     finance_service: FinanceService,
     category_icons: dict[str, str],
-    travel_goal: float,
-    saved_so_far: float,
     formatter: Callable[[float], str],
 ) -> None:
     section_header("🔎 Onde Cortar Gastos?")
@@ -37,46 +35,5 @@ def render_analysis_tab(
         total_subs = subs["Valor"].sum()
         st.markdown(f"**Total em assinaturas:** {formatter(abs(total_subs))} por mês")
         st.markdown(f"**Projeção anual:** {formatter(abs(total_subs) * 12)}")
-        st.info(
-            "💡 Revise se todas essas assinaturas estão sendo usadas. "
-            "Cancelar as desnecessárias pode liberar dinheiro para a sua meta!"
-        )
     else:
         st.info("Nenhuma assinatura encontrada no período.")
-
-    st.divider()
-    section_header("🎯 Simulador de Economia")
-    st.markdown("Selecione categorias onde você acha que pode reduzir gastos:")
-
-    savings_cats = st.multiselect(
-        "Categorias para reduzir",
-        options=[c for c in cat_summary["Categoria"].tolist()] if not cat_summary.empty else [],
-        default=[],
-        key="savings_sim",
-    )
-    cut_pct = st.slider("Percentual de redução", 10, 80, 30, 5, format="%d%%")
-
-    simulation = finance_service.calculate_savings_simulation(
-        summary_by_category=cat_summary,
-        selected_categories=savings_cats,
-        cut_pct=cut_pct,
-        travel_goal=travel_goal,
-        saved_so_far=saved_so_far,
-    )
-    if simulation is not None:
-        st.success(
-            f"Cortando **{cut_pct}%** nessas categorias, você economizaria "
-            f"**{formatter(simulation.monthly_saving)}/mês** → "
-            f"**{formatter(simulation.yearly_saving)}/ano**"
-        )
-        if simulation.months_to_goal is not None:
-            if simulation.months_to_goal <= 12:
-                st.markdown(
-                    f"🎉 Você atingiria a meta da viagem em **{simulation.months_to_goal:.1f} meses** "
-                    "só com essa economia!"
-                )
-            else:
-                st.markdown(
-                    f"⏳ Seriam **{simulation.months_to_goal:.1f} meses** só com essa economia — "
-                    "considere combinar com outras estratégias."
-                )

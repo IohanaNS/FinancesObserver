@@ -3,7 +3,6 @@ from collections.abc import Callable
 import pandas as pd
 import streamlit as st
 
-from core.models import SidebarState
 from ports.accounts_port import AccountsPort
 from services import BillsService, FinanceService
 
@@ -16,50 +15,6 @@ from presentation.tabs.dashboard_tab import render_dashboard_tab
 from presentation.tabs.investments_tab import render_investments_tab
 from presentation.tabs.rules_tab import render_rules_tab
 from presentation.tabs.transactions_tab import render_transactions_tab
-
-
-def _bootstrap_financial_goal(finance_service: FinanceService) -> None:
-    if "goal" in st.session_state:
-        return
-
-    cache = finance_service.load_cached_investments()
-    if not cache:
-        return
-
-    cached_goal = cache.get("goal")
-    if cached_goal is None:
-        return
-
-    try:
-        normalized_goal = float(cached_goal)
-    except (TypeError, ValueError):
-        return
-
-    st.session_state.goal = normalized_goal
-    st.session_state.goal_cache_last_saved = normalized_goal
-
-    cached_months = cache.get("goal_months")
-    if cached_months is not None:
-        try:
-            st.session_state.goal_months = int(cached_months)
-        except (TypeError, ValueError):
-            pass
-
-
-def _sync_shared_goal(finance_service: FinanceService, sidebar_state: SidebarState) -> None:
-    normalized_goal = float(sidebar_state.travel_goal)
-    months = int(sidebar_state.months_left)
-
-    last_saved_goal = st.session_state.get("goal_cache_last_saved")
-    last_saved_months = st.session_state.get("goal_months_cache_last_saved")
-
-    goal_changed = last_saved_goal is None or abs(float(last_saved_goal) - normalized_goal) > 1e-9
-    months_changed = last_saved_months is None or int(last_saved_months) != months
-
-    if goal_changed or months_changed:
-        finance_service.save_investments_goal(normalized_goal, months)
-        st.session_state.goal_cache_last_saved = normalized_goal
-        st.session_state.goal_months_cache_last_saved = months
 
 
 def _handle_sync_request(finance_service: FinanceService, sidebar_state: SidebarState) -> pd.DataFrame:
@@ -83,18 +38,6 @@ def _handle_sync_request(finance_service: FinanceService, sidebar_state: Sidebar
     except Exception as exc:  # noqa: BLE001 - erro exibido ao usuário
         st.error(f"Erro ao sincronizar: {exc}")
     return st.session_state.df
-
-
-def _get_invested_total(finance_service: FinanceService) -> float:
-    cache = finance_service.load_cached_investments()
-    if not cache:
-        return 0.0
-    investments = cache.get("investments", [])
-    return sum(
-        item.get("saldo_atual", 0.0)
-        for item in investments
-        if item.get("saldo_atual") is not None
-    )
 
 
 def _render_tabs(
@@ -150,8 +93,6 @@ def _render_tabs(
             filtered_df=filtered,
             finance_service=finance_service,
             category_icons=category_icons,
-            travel_goal=sidebar_state.travel_goal,
-            saved_so_far=_get_invested_total(finance_service),
             formatter=formatter,
         )
 
@@ -172,17 +113,12 @@ def render_main_screen(
     formatter: Callable[[float], str],
     accounts_adapter: AccountsPort | None = None,
 ) -> None:
-    _bootstrap_financial_goal(finance_service)
-
     sidebar_state = render_sidebar(
         df=df,
         categories=finance_service.get_categorias_list(),
         fontes=finance_service.get_fontes(),
-        finance_service=finance_service,
-        formatter=formatter,
         accounts_adapter=accounts_adapter,
     )
-    _sync_shared_goal(finance_service, sidebar_state)
 
     df = _handle_sync_request(finance_service, sidebar_state)
 

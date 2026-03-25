@@ -31,9 +31,6 @@ class FakeBankingAdapter:
     def load_investments_cache(self) -> dict | None:
         return None
 
-    def save_investments_goal(self, goal: float) -> None:
-        return None
-
     def get_fontes(self) -> list[str]:
         return []
 

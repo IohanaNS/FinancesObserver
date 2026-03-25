@@ -5,7 +5,7 @@ from typing import Sequence
 import pandas as pd
 
 from core.constants import CATEGORY_INVESTMENTS, CATEGORY_SALARY, CATEGORY_SUBSCRIPTIONS
-from core.models import FinanceKpis, SavingsSimulation
+from core.models import FinanceKpis
 from ports import BankingPort, RulesDataPort, TransactionsDataPort
 
 
@@ -90,9 +90,6 @@ class FinanceService:
     def load_cached_investments(self) -> dict | None:
         return self._banking.load_investments_cache()
 
-    def save_investments_goal(self, goal: float, months: int | None = None) -> None:
-        self._banking.save_investments_goal(goal, months)
-
     def estimate_investments_from_transactions(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Build an estimated investments snapshot from classified transactions.
@@ -154,33 +151,6 @@ class FinanceService:
 
     def get_subscription_expenses(self, df: pd.DataFrame) -> pd.DataFrame:
         return df[df["Categoria"] == CATEGORY_SUBSCRIPTIONS].copy()
-
-    def calculate_savings_simulation(
-        self,
-        summary_by_category: pd.DataFrame,
-        selected_categories: list[str],
-        cut_pct: int,
-        travel_goal: float,
-        saved_so_far: float,
-    ) -> SavingsSimulation | None:
-        if not selected_categories or summary_by_category.empty:
-            return None
-
-        potential = summary_by_category[
-            summary_by_category["Categoria"].isin(selected_categories)
-        ]["Total"].sum()
-        monthly_saving = potential * cut_pct / 100
-        yearly_saving = monthly_saving * 12
-
-        months_to_goal: float | None = None
-        if travel_goal > 0 and monthly_saving > 0:
-            months_to_goal = (travel_goal - saved_so_far) / monthly_saving
-
-        return SavingsSimulation(
-            monthly_saving=monthly_saving,
-            yearly_saving=yearly_saving,
-            months_to_goal=months_to_goal,
-        )
 
     def add_manual_transaction(
         self,

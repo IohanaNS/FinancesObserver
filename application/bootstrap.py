@@ -66,8 +66,6 @@ def _seed_mongo_caches_from_json(cache_repository) -> None:
             data = json.load(f)
         cache_repository.save_investments(
             investments=data.get("investments", []),
-            goal=data.get("goal"),
-            goal_months=data.get("goal_months"),
         )
 
 

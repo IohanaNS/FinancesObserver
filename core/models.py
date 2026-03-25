@@ -4,8 +4,6 @@ from datetime import date
 
 @dataclass(frozen=True)
 class SidebarState:
-    travel_goal: float
-    months_left: int
     date_range: tuple[date, date]
     filter_cats: list[str]
     filter_fontes: list[str]
@@ -20,10 +18,3 @@ class FinanceKpis:
     total_real_expenses: float
     pct_salary: float
     total_invested: float
-
-
-@dataclass(frozen=True)
-class SavingsSimulation:
-    monthly_saving: float
-    yearly_saving: float
-    months_to_goal: float | None

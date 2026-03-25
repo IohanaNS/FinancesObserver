@@ -185,39 +185,14 @@ def save_balances_cache(balances: list[dict], cache_file: str):
 def save_investments_cache(
     investments: list[dict],
     cache_file: str,
-    goal: float | None = None,
-    goal_months: int | None = None,
 ):
     """Save investments snapshot to local JSON cache."""
-    existing = load_investments_cache(cache_file) or {}
-    preserved_goal = goal if goal is not None else _to_float_or_none(existing.get("goal"))
-    preserved_months = goal_months if goal_months is not None else existing.get("goal_months")
     data: dict = {
         "updated_at": datetime.now().isoformat(),
         "investments": investments,
     }
-    if preserved_goal is not None:
-        data["goal"] = preserved_goal
-    if preserved_months is not None:
-        data["goal_months"] = int(preserved_months)
     with open(cache_file, "w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=2, default=str)
-
-
-def save_investments_goal(
-    goal: float,
-    months: int | None = None,
-    cache_file: str = "investimentos_cache.json",
-) -> None:
-    """Persist the financial goal and optional timeline in the investments cache JSON."""
-    cached = load_investments_cache(cache_file) or {}
-    cached_investments = cached.get("investments", [])
-    save_investments_cache(
-        investments=cached_investments if isinstance(cached_investments, list) else [],
-        cache_file=cache_file,
-        goal=float(goal),
-        goal_months=months,
-    )
 
 
 def load_bills_cache(cache_file: str = "faturas_cache.json") -> dict | None:
@@ -360,21 +335,43 @@ def fetch_investments(settings: PluggySettings | None = None) -> list[dict]:
     return investments
 
 
+class PluggyUpdateBlockedError(Exception):
+    """Raised when the Pluggy subscription does not allow item updates via API."""
+
+
 def _trigger_and_wait_for_updates(
     headers: dict,
     settings: PluggySettings,
 ) -> None:
     """Trigger a fresh data sync for all items and wait until they finish."""
     item_ids = list(settings.item_map.keys())
+    triggered: list[str] = []
     for item_id in item_ids:
         try:
             update_item(headers, item_id, settings.base_url)
             logger.info("Update triggered for item %s", item_id[:8])
+            triggered.append(item_id)
         except requests.HTTPError as exc:
+            response = exc.response
+            if response is not None and response.status_code == 400:
+                body = response.json() if response.content else {}
+                msg = body.get("message", "")
+                code_desc = body.get("codeDescription", "")
+                is_blocked = (
+                    code_desc == "SANDBOX_CLIENT_ITEM_UPDATE_NOT_ALLOWED"
+                    or "meupluggy" in msg.lower()
+                    or "sandbox" in msg.lower()
+                )
+                if is_blocked:
+                    logger.warning(
+                        "MeuPluggy plan does not allow API updates for item %s, skipping trigger.",
+                        item_id[:8],
+                    )
+                    continue
             logger.warning("Failed to trigger update for item %s: %s", item_id[:8], exc)
 
-    if item_ids:
-        wait_for_items_update(headers, item_ids, settings.base_url)
+    if triggered:
+        wait_for_items_update(headers, triggered, settings.base_url)
 
 
 def update_item(headers: dict, item_id: str, base_url: str) -> dict:

@@ -11,7 +11,6 @@ from pluggy_integration import (
     load_balances_cache,
     load_bills_cache,
     load_investments_cache,
-    save_investments_goal,
     sync_all,
 )
 
@@ -73,12 +72,6 @@ class PluggyBankingAdapter:
         if self._cache:
             return self._cache.load_investments()
         return load_investments_cache(cache_file=self._settings.investments_cache_file)
-
-    def save_investments_goal(self, goal: float, months: int | None = None) -> None:
-        if self._cache:
-            self._cache.save_investments_goal(goal, months)
-        else:
-            save_investments_goal(goal=goal, months=months, cache_file=self._settings.investments_cache_file)
 
     def get_fontes(self) -> list[str]:
         return self._settings.get_configured_fontes()
